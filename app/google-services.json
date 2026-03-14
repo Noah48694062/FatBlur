@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "870328053652",
+    "project_id": "secretlovetest",
+    "storage_bucket": "secretlovetest.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:870328053652:android:3888d8ef0b485d4869e981",
+        "android_client_info": {
+          "package_name": "com.example.fatblur"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBflbmko3QnDJkpeNJggHB6QPpNZp4-Vt0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
