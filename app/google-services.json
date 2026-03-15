@@ -1,6 +1,7 @@
 {
   "project_info": {
     "project_number": "870328053652",
+    "firebase_url": "https://secretlovetest-default-rtdb.asia-southeast1.firebasedatabase.app",
     "project_id": "secretlovetest",
     "storage_bucket": "secretlovetest.firebasestorage.app"
   },
@@ -12,7 +13,12 @@
           "package_name": "com.example.fatblur"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "870328053652-nq0bf8hu8ipk3mesnpsk5vtdosladsv9.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBflbmko3QnDJkpeNJggHB6QPpNZp4-Vt0"
@@ -20,7 +26,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "870328053652-nq0bf8hu8ipk3mesnpsk5vtdosladsv9.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
