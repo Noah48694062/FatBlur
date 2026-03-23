@@ -1,4 +1,4 @@
-package com.example.fatblur;
+package com.example.fatblur.models;
 
 import java.io.Serializable;
 
@@ -36,4 +36,6 @@ public class User implements Serializable {
 
     // 4. Các Getter và Setter (Tùy chọn, nhưng nên có để bảo mật dữ liệu)
     // Bạn có thể nhấn Alt + Insert trong Android Studio để tự động tạo nhanh
+    //getter va setter
+
 }
