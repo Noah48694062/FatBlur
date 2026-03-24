@@ -95,17 +95,40 @@ public class LoginActivity extends AppCompatActivity {
                 });
     }
 
+//    private void checkPartnerStatus(String uid) {
+//        // [cite: 3] Truy xuất từ collection 'users'
+//        mDatabase.child("users").child(uid).addListenerForSingleValueEvent(new ValueEventListener() {
+//            @Override
+//            public void onDataChange(@NonNull DataSnapshot snapshot) {
+//                User user = snapshot.getValue(User.class);
+//                if (user != null) {
+//                    //  Nếu chưa có đối tác, nhắc nhở mã cá nhân
+//                    if (TextUtils.isEmpty(user.partnerId)) {
+//                        Toast.makeText(LoginActivity.this, "Chào mừng! Mã của bạn là: " + user.userCode,
+//                                Toast.LENGTH_LONG).show();
+//                    }
+//                    goToMainActivity();
+//                }
+//            }
+//            @Override
+//            public void onCancelled(@NonNull DatabaseError error) {}
+//        });
+//    }
     private void checkPartnerStatus(String uid) {
-        // [cite: 3] Truy xuất từ collection 'users'
         mDatabase.child("users").child(uid).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 User user = snapshot.getValue(User.class);
                 if (user != null) {
-                    //  Nếu chưa có đối tác, nhắc nhở mã cá nhân
+                    // Nếu chưa có đối tác, chúng ta nhắc họ vào Hồ sơ để lấy mã
                     if (TextUtils.isEmpty(user.partnerId)) {
-                        Toast.makeText(LoginActivity.this, "Chào mừng! Mã của bạn là: " + user.userCode,
+                        Toast.makeText(LoginActivity.this,
+                                "Bạn chưa kết nối với ai. Hãy vào phần Hồ sơ để lấy mã nhé!",
                                 Toast.LENGTH_LONG).show();
+                    } else {
+                        Toast.makeText(LoginActivity.this,
+                                "Chào mừng " + user.name + " trở lại!",
+                                Toast.LENGTH_SHORT).show();
                     }
                     goToMainActivity();
                 }
