@@ -3,6 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="36"/>
 
     <application
         android:allowBackup="true"
@@ -24,6 +26,10 @@
         <activity android:name=".views.RegisterActivity" />
 
         <activity android:name=".views.MainActivity" />
+        <activity android:name=".views.EditProfileActivity" android:exported="false" />
+        <activity android:name=".views.ConnectionManagementActivity" android:exported="false" />
+        <activity android:name=".views.ConnectCodeActivity" android:exported="false" />
+<!--        <activity android:name=".views.NotificationSettingsActivity" android:exported="false" />-->
 
     </application>
 </manifest>
