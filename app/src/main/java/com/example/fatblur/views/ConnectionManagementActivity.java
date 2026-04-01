@@ -61,6 +61,13 @@ public class ConnectionManagementActivity extends AppCompatActivity {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 if (snapshot.exists()) {
+                    // 1. Lấy và hiển thị tên của chính mình
+                    String myName = snapshot.child("name").getValue(String.class);
+                    if (myName != null && !myName.isEmpty()) {
+                        binding.txtMyNameHeader.setText(myName);
+                    } else {
+                        binding.txtMyNameHeader.setText("Tôi"); // Backup nếu tên trống
+                    }
                     // Cập nhật Avatar của bản thân lên header
                     String myAvatar = snapshot.child("avatar").getValue(String.class);
                     setBase64Image(myAvatar, binding.ivMyAvatar);

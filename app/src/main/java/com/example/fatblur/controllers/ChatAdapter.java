@@ -31,7 +31,15 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
     public void onBindViewHolder(@NonNull ChatViewHolder holder, int position) {
         Message msg = messageList.get(position);
         TextView txt = holder.itemView.findViewById(android.R.id.text1);
-        // Hiển thị: "Người gửi: Nội dung"
+        // Kiểm tra nếu tin nhắn hoặc nội dung bị null thì ẩn đi, tránh hiện dòng trống
+        if (msg == null || msg.content == null || msg.senderId == null) {
+            txt.setVisibility(View.GONE);
+            return;
+        } else {
+            txt.setVisibility(View.VISIBLE);
+        }
+
+        // Dòng này giống hệt cách cũ của bạn nhưng đã có kiểm tra null ở trên nên cực kỳ an toàn
         txt.setText((msg.senderId.equals(myUid) ? "Bạn: " : "Người ấy: ") + msg.content);
     }
 

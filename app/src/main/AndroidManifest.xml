@@ -31,7 +31,8 @@
         <activity android:name=".views.EditProfileActivity" android:exported="false" />
         <activity android:name=".views.ConnectionManagementActivity" android:exported="false" />
         <activity android:name=".views.ConnectCodeActivity" android:exported="false" />
-<!--        <activity android:name=".views.NotificationSettingsActivity" android:exported="false" />-->
+        <activity android:name=".views.NotificationSettingsActivity" android:exported="false" />
+        <activity android:name=".views.InteractionDiaryActivity" android:exported="false" />
 
         <receiver android:name=".utils.ReminderReceiver" android:exported="false" />
 

@@ -66,6 +66,12 @@ public class ProfileFragment extends Fragment {
             startActivity(intent);
         });
 
+        // 5. Xử lý sự kiện nhấn vào mục "Nhật ký tương tác"
+        binding.layoutInteractionDiary.setOnClickListener(v -> {
+            Intent intent = new Intent(getActivity(), InteractionDiaryActivity.class);
+            startActivity(intent);
+        });
+
         // 6. Xử lý sự kiện nhấn nút Đăng xuất
         binding.btnLogOutProfile.setOnClickListener(v -> {
             // Lệnh đăng xuất của Firebase
