@@ -336,80 +336,27 @@ public class CalendarFragment extends Fragment {
         dialog.show();
     }
 
-    private void scheduleNotification(String dateKey, String note) {
-        // 1. Khởi tạo Calendar
-        java.util.Calendar calendar = java.util.Calendar.getInstance();
-
-        // --- DÒNG ĐỂ TEST: Thông báo sẽ nổ sau 10 giây kể từ khi nhấn Lưu ---
-        calendar.setTimeInMillis(System.currentTimeMillis() + 10000);
-        // ---------------------------------------------------------------
-
-        // 2. Khởi tạo Intent và PendingIntent (Giữ nguyên)
-        Intent intent = new Intent(getContext(), ReminderReceiver.class);
-        intent.putExtra("title", "Test thông báo SecretLove ❤️");
-        intent.putExtra("message", note.isEmpty() ? "Kỷ niệm đang đến kìa!" : note);
-
-        android.app.PendingIntent pendingIntent = android.app.PendingIntent.getBroadcast(
-                getContext(),
-                (int) System.currentTimeMillis(), // Dùng thời gian hiện tại làm ID để không bị trùng khi test nhiều lần
-                intent,
-                android.app.PendingIntent.FLAG_UPDATE_CURRENT | android.app.PendingIntent.FLAG_IMMUTABLE
-        );
-
-        // 3. Đặt báo thức với AlarmManager (Giữ nguyên logic kiểm tra quyền của bạn)
-        android.app.AlarmManager alarmManager = (android.app.AlarmManager) getContext().getSystemService(Context.ALARM_SERVICE);
-        if (alarmManager != null) {
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-                if (alarmManager.canScheduleExactAlarms()) {
-                    alarmManager.setExactAndAllowWhileIdle(
-                            android.app.AlarmManager.RTC_WAKEUP,
-                            calendar.getTimeInMillis(),
-                            pendingIntent
-                    );
-                } else {
-                    alarmManager.set(
-                            android.app.AlarmManager.RTC_WAKEUP,
-                            calendar.getTimeInMillis(),
-                            pendingIntent
-                    );
-                }
-            } else {
-                alarmManager.setExactAndAllowWhileIdle(
-                        android.app.AlarmManager.RTC_WAKEUP,
-                        calendar.getTimeInMillis(),
-                        pendingIntent
-                );
-            }
-        }
-    }
-
 //    private void scheduleNotification(String dateKey, String note) {
-//        // --- PHẦN BỊ THIẾU DẪN ĐẾN LỖI ĐỎ ---
-//        // 1. Khởi tạo Calendar từ dateKey (yyyyMMdd)
-//        int year = Integer.parseInt(dateKey.substring(0, 4));
-//        int month = Integer.parseInt(dateKey.substring(4, 6));
-//        int day = Integer.parseInt(dateKey.substring(6, 8));
-//
+//        // 1. Khởi tạo Calendar
 //        java.util.Calendar calendar = java.util.Calendar.getInstance();
-//        calendar.set(year, month - 1, day, 8, 0, 0); // Đặt lịch lúc 8 giờ sáng
 //
-//        // Nếu ngày đó đã trôi qua thì không đặt nữa
-//        if (calendar.getTimeInMillis() < System.currentTimeMillis()) return;
+//        // --- DÒNG ĐỂ TEST: Thông báo sẽ nổ sau 10 giây kể từ khi nhấn Lưu ---
+//        calendar.setTimeInMillis(System.currentTimeMillis() + 10000);
+//        // ---------------------------------------------------------------
 //
-//        // 2. Khởi tạo Intent và PendingIntent
+//        // 2. Khởi tạo Intent và PendingIntent (Giữ nguyên)
 //        Intent intent = new Intent(getContext(), ReminderReceiver.class);
-//        intent.putExtra("title", "Hôm nay là ngày đặc biệt!");
-//        intent.putExtra("message", note.isEmpty() ? "Vào xem kỷ niệm của chúng mình nhé ❤️" : note);
+//        intent.putExtra("title", "Test thông báo SecretLove ❤️");
+//        intent.putExtra("message", note.isEmpty() ? "Kỷ niệm đang đến kìa!" : note);
 //
 //        android.app.PendingIntent pendingIntent = android.app.PendingIntent.getBroadcast(
 //                getContext(),
-//                dateKey.hashCode(), // ID duy nhất cho mỗi ngày
+//                (int) System.currentTimeMillis(), // Dùng thời gian hiện tại làm ID để không bị trùng khi test nhiều lần
 //                intent,
 //                android.app.PendingIntent.FLAG_UPDATE_CURRENT | android.app.PendingIntent.FLAG_IMMUTABLE
 //        );
-//        // --- HẾT PHẦN BỊ THIẾU ---
 //
-//        // 3. Đặt báo thức với AlarmManager (Đoạn này giữ nguyên logic kiểm tra quyền của bạn)
+//        // 3. Đặt báo thức với AlarmManager (Giữ nguyên logic kiểm tra quyền của bạn)
 //        android.app.AlarmManager alarmManager = (android.app.AlarmManager) getContext().getSystemService(Context.ALARM_SERVICE);
 //        if (alarmManager != null) {
 //            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
@@ -435,5 +382,58 @@ public class CalendarFragment extends Fragment {
 //            }
 //        }
 //    }
+
+    private void scheduleNotification(String dateKey, String note) {
+        // --- PHẦN BỊ THIẾU DẪN ĐẾN LỖI ĐỎ ---
+        // 1. Khởi tạo Calendar từ dateKey (yyyyMMdd)
+        int year = Integer.parseInt(dateKey.substring(0, 4));
+        int month = Integer.parseInt(dateKey.substring(4, 6));
+        int day = Integer.parseInt(dateKey.substring(6, 8));
+
+        java.util.Calendar calendar = java.util.Calendar.getInstance();
+        calendar.set(year, month - 1, day, 8, 0, 0); // Đặt lịch lúc 8 giờ sáng
+
+        // Nếu ngày đó đã trôi qua thì không đặt nữa
+        if (calendar.getTimeInMillis() < System.currentTimeMillis()) return;
+
+        // 2. Khởi tạo Intent và PendingIntent
+        Intent intent = new Intent(getContext(), ReminderReceiver.class);
+        intent.putExtra("title", "Hôm nay là ngày đặc biệt!");
+        intent.putExtra("message", note.isEmpty() ? "Vào xem kỷ niệm của chúng mình nhé ❤️" : note);
+
+        android.app.PendingIntent pendingIntent = android.app.PendingIntent.getBroadcast(
+                getContext(),
+                dateKey.hashCode(), // ID duy nhất cho mỗi ngày
+                intent,
+                android.app.PendingIntent.FLAG_UPDATE_CURRENT | android.app.PendingIntent.FLAG_IMMUTABLE
+        );
+        // --- HẾT PHẦN BỊ THIẾU ---
+
+        // 3. Đặt báo thức với AlarmManager (Đoạn này giữ nguyên logic kiểm tra quyền của bạn)
+        android.app.AlarmManager alarmManager = (android.app.AlarmManager) getContext().getSystemService(Context.ALARM_SERVICE);
+        if (alarmManager != null) {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                if (alarmManager.canScheduleExactAlarms()) {
+                    alarmManager.setExactAndAllowWhileIdle(
+                            android.app.AlarmManager.RTC_WAKEUP,
+                            calendar.getTimeInMillis(),
+                            pendingIntent
+                    );
+                } else {
+                    alarmManager.set(
+                            android.app.AlarmManager.RTC_WAKEUP,
+                            calendar.getTimeInMillis(),
+                            pendingIntent
+                    );
+                }
+            } else {
+                alarmManager.setExactAndAllowWhileIdle(
+                        android.app.AlarmManager.RTC_WAKEUP,
+                        calendar.getTimeInMillis(),
+                        pendingIntent
+                );
+            }
+        }
+    }
 
 }

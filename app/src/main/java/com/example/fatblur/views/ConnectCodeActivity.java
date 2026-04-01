@@ -18,7 +18,7 @@ public class ConnectCodeActivity extends AppCompatActivity {
     private ActivityConnectCodeBinding binding;
     private DatabaseReference mDatabase;
     private String myUid;
-    private static final long EXPIRE_TIME = 24 * 60 * 60 * 1000; // 24 giờ
+    private static final long EXPIRE_TIME = 10 * 60 * 1000; // 10 phút
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

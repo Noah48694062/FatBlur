@@ -106,6 +106,9 @@ public class ConnectionManagementActivity extends AppCompatActivity {
         binding.layoutNoConnection.getRoot().setVisibility(View.GONE);
         binding.ivHeart.setAlpha(1.0f); // Tim sáng rực lên
 
+        binding.layoutConnected.btnDisconnect.setOnClickListener(v -> {
+            confirmDisconnect(partnerId);
+        });
         // Truy vấn thông tin chi tiết của đối phương
         mDatabase.child("users").child(partnerId).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
@@ -151,5 +154,43 @@ public class ConnectionManagementActivity extends AppCompatActivity {
         } catch (Exception e) {
             imageView.setImageResource(R.drawable.default_avatar);
         }
+    }
+    /**
+     * Hiển thị hộp thoại xác nhận trước khi hủy kết nối
+     */
+    private void confirmDisconnect(String partnerId) {
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Hủy kết nối")
+                .setMessage("Bạn có chắc chắn muốn hủy kết nối với đối phương không?")
+                .setPositiveButton("Hủy kết nối", (dialog, which) -> {
+                    performDisconnect(partnerId);
+                })
+                .setNegativeButton("Đóng", null)
+                .show();
+    }
+
+    /**
+     * Thực hiện xóa partnerId của cả 2 phía trên Firebase
+     */
+    private void performDisconnect(String partnerId) {
+        if (myUid == null || partnerId == null) return;
+
+        // 1. Xóa partnerId của chính mình
+        mDatabase.child("users").child(myUid).child("partnerId").setValue(null)
+                .addOnSuccessListener(aVoid -> {
+                    // 2. Sau khi xóa của mình thành công, xóa tiếp của đối phương
+                    mDatabase.child("users").child(partnerId).child("partnerId").setValue(null)
+                            .addOnSuccessListener(aVoid2 -> {
+                                android.widget.Toast.makeText(this, "Đã hủy kết nối thành công", android.widget.Toast.LENGTH_SHORT).show();
+                                // Lưu ý: Vì bạn đang dùng addValueEventListener trong observeConnectionStatus(),
+                                // giao diện sẽ tự động nhảy về showNoConnectionUI() khi dữ liệu thay đổi.
+                            })
+                            .addOnFailureListener(e -> {
+                                android.widget.Toast.makeText(this, "Lỗi khi xóa phía đối phương", android.widget.Toast.LENGTH_SHORT).show();
+                            });
+                })
+                .addOnFailureListener(e -> {
+                    android.widget.Toast.makeText(this, "Lỗi kết nối mạng", android.widget.Toast.LENGTH_SHORT).show();
+                });
     }
 }

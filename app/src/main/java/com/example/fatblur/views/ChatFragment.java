@@ -63,19 +63,19 @@ public class ChatFragment extends Fragment {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
                         User user = snapshot.getValue(User.class);
-                        layoutChatActive.setVisibility(View.VISIBLE);
-                        layoutNotConnected.setVisibility(View.GONE);
+//                        layoutChatActive.setVisibility(View.VISIBLE);
+//                        layoutNotConnected.setVisibility(View.GONE);
 
-//                        if (user != null && user.partnerId != null && !user.partnerId.isEmpty()) {
-//                            layoutChatActive.setVisibility(View.VISIBLE);
-//                            layoutNotConnected.setVisibility(View.GONE);
-//
-//
-//                            setupChatRoom(user.partnerId);
-//                        } else {
-//                            layoutChatActive.setVisibility(View.GONE);
-//                            layoutNotConnected.setVisibility(View.VISIBLE);
-//                        }
+                        if (user != null && user.partnerId != null && !user.partnerId.isEmpty()) {
+                            layoutChatActive.setVisibility(View.VISIBLE);
+                            layoutNotConnected.setVisibility(View.GONE);
+
+
+                            setupChatRoom(user.partnerId);
+                        } else {
+                            layoutChatActive.setVisibility(View.GONE);
+                            layoutNotConnected.setVisibility(View.VISIBLE);
+                        }
                     }
 
                     @Override

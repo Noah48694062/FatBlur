@@ -207,5 +207,27 @@
                 android:textSize="12sp" />
         </LinearLayout>
     </LinearLayout>
+    <Button
+        android:id="@+id/btnDisconnect"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_marginTop="32dp"
+        android:text="HỦY KẾT NỐI"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:letterSpacing="0.05"
+        android:backgroundTint="#FF5864"
+        app:cornerRadius="28dp"
+        android:elevation="0dp"
+        style="@style/Widget.MaterialComponents.Button.UnelevatedButton"/>
 
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Lưu ý: Sau khi hủy, bạn sẽ không thể xem thông tin của đối phương trừ khi kết nối lại."
+        android:textAlignment="center"
+        android:textColor="#BDBDBD"
+        android:textSize="11sp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="16dp" />
 </LinearLayout>
