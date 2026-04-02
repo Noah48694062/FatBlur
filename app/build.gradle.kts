@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     //id("com.android.application")
     id("com.google.gms.google-services")
+    alias(libs.plugins.google.android.libraries.mapsplatform.secrets.gradle.plugin)
 }
 
 android {
@@ -56,4 +57,6 @@ dependencies {
     annotationProcessor("com.github.bumptech.glide:compiler:4.16.0")
     implementation("de.hdodenhof:circleimageview:3.1.0")
     implementation("io.github.chaosleung:pinview:1.4.4")
+    // Trong build.gradle
+    implementation("com.google.android.gms:play-services-location:21.1.0")
 }
