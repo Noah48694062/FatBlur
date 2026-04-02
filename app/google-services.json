@@ -15,6 +15,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "870328053652-9c50anug6ggfh7pbu7groemh6d6o99mr.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.fatblur",
+            "certificate_hash": "a8417c3edcc8a58097033dc4d8db880707c27c1c"
+          }
+        },
+        {
           "client_id": "870328053652-nq0bf8hu8ipk3mesnpsk5vtdosladsv9.apps.googleusercontent.com",
           "client_type": 3
         }

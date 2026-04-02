@@ -138,6 +138,7 @@ public class LoginActivity extends AppCompatActivity {
         });
     }
 
+
     private void updateUserStatus(String uid) {
         //  Cập nhật trạng thái realtime
         mDatabase.child("user_status").child(uid).child("isOnline").setValue(true);

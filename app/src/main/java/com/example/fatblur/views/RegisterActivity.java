@@ -107,7 +107,12 @@ public class RegisterActivity extends AppCompatActivity {
                             String uid = mAuth.getCurrentUser().getUid();
                             saveUserToDatabase(uid, email, name, phone, birthday, finalGender, bio);
                         } else {
-                            Toast.makeText(RegisterActivity.this, "Lỗi: " + task.getException().getMessage(), Toast.LENGTH_LONG).show();
+                            //Toast.makeText(RegisterActivity.this, "Lỗi: " + task.getException().getMessage(), Toast.LENGTH_LONG).show();
+                            new android.app.AlertDialog.Builder(RegisterActivity.this)
+                                    .setTitle("Lỗi Đăng ký")
+                                    .setMessage(task.getException().getMessage()) // Nó sẽ nói chính xác lỗi gì
+                                    .setPositiveButton("OK", null)
+                                    .show();
                         }
                     });
         }
@@ -135,6 +140,10 @@ public class RegisterActivity extends AppCompatActivity {
                     Toast.makeText(RegisterActivity.this, "Đăng ký thành công!", Toast.LENGTH_SHORT).show();
                     startActivity(new Intent(RegisterActivity.this, MainActivity.class));
                     finish();
+                })
+                .addOnFailureListener(e -> {
+                    // Dòng này cực kỳ quan trọng để biết tại sao bị từ chối
+                    Toast.makeText(RegisterActivity.this, "Lỗi Database: " + e.getMessage(), Toast.LENGTH_LONG).show();
                 });
     }
 
