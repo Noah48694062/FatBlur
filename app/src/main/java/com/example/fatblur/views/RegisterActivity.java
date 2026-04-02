@@ -107,12 +107,8 @@ public class RegisterActivity extends AppCompatActivity {
                             String uid = mAuth.getCurrentUser().getUid();
                             saveUserToDatabase(uid, email, name, phone, birthday, finalGender, bio);
                         } else {
-                            //Toast.makeText(RegisterActivity.this, "Lỗi: " + task.getException().getMessage(), Toast.LENGTH_LONG).show();
-                            new android.app.AlertDialog.Builder(RegisterActivity.this)
-                                    .setTitle("Lỗi Đăng ký")
-                                    .setMessage(task.getException().getMessage()) // Nó sẽ nói chính xác lỗi gì
-                                    .setPositiveButton("OK", null)
-                                    .show();
+                            Toast.makeText(RegisterActivity.this, "Lỗi: " + task.getException().getMessage(), Toast.LENGTH_LONG).show();
+
                         }
                     });
         }
