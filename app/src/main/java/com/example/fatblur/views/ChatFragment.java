@@ -29,7 +29,7 @@ import java.util.List;
 public class ChatFragment extends Fragment {
     private RecyclerView rvChat;
     private EditText edtMessage;
-    private DatabaseReference chatRef;
+    private DatabaseReference chatRef; // messages/coupleKey
     private String myUid, coupleKey;
     private List<Message> messageList = new ArrayList<>();
     private ChatAdapter adapter;
@@ -39,7 +39,6 @@ public class ChatFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.fragment_chat, container, false);
 
-        // 1. Ánh xạ các View (QUAN TRỌNG: Bạn bị thiếu phần này dẫn đến lỗi 'never assigned')
         layoutNotConnected = v.findViewById(R.id.layoutNotConnected);
         layoutChatActive = v.findViewById(R.id.layoutChatActive);
         rvChat = v.findViewById(R.id.rvChat);
@@ -48,13 +47,52 @@ public class ChatFragment extends Fragment {
 
         myUid = FirebaseAuth.getInstance().getUid();
 
-        // 2. Thiết lập nút gửi (Sửa lỗi 'sendMessage is never used')
+        // KHỞI TẠO ADAPTER
+        // Chú ý: Chúng ta sẽ truyền 'chatRef' vào sau khi có coupleKey
+        adapter = new ChatAdapter(messageList, myUid);
+        rvChat.setLayoutManager(new LinearLayoutManager(getContext()));
+        rvChat.setAdapter(adapter);
+
         btnSend.setOnClickListener(view -> sendMessage());
 
-        // 3. Kiểm tra kết nối
         checkConnectionStatus();
-
         return v;
+    }
+
+    private void setupChatRoom(String partnerId) {
+        if (myUid.compareTo(partnerId) < 0) {
+            coupleKey = myUid + "_" + partnerId;
+        } else {
+            coupleKey = partnerId + "_" + myUid;
+        }
+
+        chatRef = FirebaseDatabase.getInstance().getReference("messages").child(coupleKey);
+
+        // CỰC KỲ QUAN TRỌNG: Truyền tham chiếu database vào Adapter để Adapter có quyền XÓA/SỬA
+        adapter.setChatDatabaseReference(chatRef.child("chats"));
+
+        listenForMessages();
+    }
+
+    private void sendMessage() {
+        String content = edtMessage.getText().toString().trim();
+        if (!content.isEmpty() && chatRef != null) {
+            long currentTime = System.currentTimeMillis();
+
+            // 1. Tạo một tham chiếu mới với ID tự động (Key)
+            DatabaseReference newMsgRef = chatRef.child("chats").push();
+            String messageId = newMsgRef.getKey(); // Đây là "Chứng minh thư" của tin nhắn
+
+            // 2. Tạo đối tượng tin nhắn và gán ID cho nó
+            Message msg = new Message(myUid, content, currentTime);
+            msg.setMessageId(messageId); // Giả sử bạn đã thêm trường messageId vào Model Message
+
+            // 3. Đẩy lên Firebase
+            newMsgRef.setValue(msg);
+
+            edtMessage.setText("");
+            updateStreakLogic(currentTime);
+        }
     }
 
     private void checkConnectionStatus() {
@@ -63,41 +101,24 @@ public class ChatFragment extends Fragment {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
                         User user = snapshot.getValue(User.class);
-//                        layoutChatActive.setVisibility(View.VISIBLE);
-//                        layoutNotConnected.setVisibility(View.GONE);
-
                         if (user != null && user.partnerId != null && !user.partnerId.isEmpty()) {
                             layoutChatActive.setVisibility(View.VISIBLE);
                             layoutNotConnected.setVisibility(View.GONE);
-
-
                             setupChatRoom(user.partnerId);
                         } else {
                             layoutChatActive.setVisibility(View.GONE);
                             layoutNotConnected.setVisibility(View.VISIBLE);
                         }
                     }
-
-                    @Override
-                    public void onCancelled(@NonNull DatabaseError error) {}
+                    @Override public void onCancelled(@NonNull DatabaseError error) {}
                 });
     }
 
 
-    private void setupChatRoom(String partnerId) {
-        // Tạo coupleKey đồng bộ
-        if (myUid.compareTo(partnerId) < 0) {
-            coupleKey = myUid + "_" + partnerId;
-        } else {
-            coupleKey = partnerId + "_" + myUid;
-        }
-
-        chatRef = FirebaseDatabase.getInstance().getReference("messages").child(coupleKey);
-        listenForMessages();
-    }
 
     private void listenForMessages() {
-        chatRef.addValueEventListener(new ValueEventListener() {
+        // Chỉ lắng nghe node "chats" để lấy tin nhắn, tránh lấy nhầm dữ liệu streakInfo
+        chatRef.child("chats").addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 messageList.clear();
@@ -106,10 +127,8 @@ public class ChatFragment extends Fragment {
                     if (msg != null) messageList.add(msg);
                 }
 
-                // Khởi tạo Adapter và hiển thị
-                adapter = new ChatAdapter(messageList, myUid);
-                rvChat.setLayoutManager(new LinearLayoutManager(getContext()));
-                rvChat.setAdapter(adapter);
+                // Cập nhật dữ liệu cho Adapter thay vì tạo mới
+                adapter.notifyDataSetChanged();
 
                 if (messageList.size() > 0) {
                     rvChat.scrollToPosition(messageList.size() - 1);
@@ -119,17 +138,7 @@ public class ChatFragment extends Fragment {
         });
     }
 
-    private void sendMessage() {
-        String content = edtMessage.getText().toString().trim();
-        if (!content.isEmpty() && chatRef != null) {
-            long currentTime = System.currentTimeMillis();
-            Message msg = new Message(myUid, content, System.currentTimeMillis());
-            chatRef.push().setValue(msg);
-            edtMessage.setText("");
-            // 2. Logic tính Streak: Cả 2 cùng nhắn mới tăng
-            updateStreakLogic(currentTime);
-        }
-    }
+
     private void updateStreakLogic(long currentTime) {
         if (coupleKey == null) return; // Bảo vệ nếu chưa có key
         DatabaseReference streakRef = FirebaseDatabase.getInstance()
