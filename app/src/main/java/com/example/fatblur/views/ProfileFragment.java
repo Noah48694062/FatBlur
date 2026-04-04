@@ -74,18 +74,19 @@ public class ProfileFragment extends Fragment {
 
         // 6. Xử lý sự kiện nhấn nút Đăng xuất
         binding.btnLogOutProfile.setOnClickListener(v -> {
-            // Lệnh đăng xuất của Firebase
-            mAuth.signOut();
+            String uid = mAuth.getUid();
+            if (uid != null) {
+                // 1. Cập nhật trạng thái Offline TRƯỚC KHI đăng xuất
+                mDatabase.child("user_status").child(uid).child("isOnline").setValue(false)
+                        .addOnCompleteListener(task -> {
+                            // 2. Sau khi DB cập nhật xong mới thực hiện Sign Out
+                            mAuth.signOut();
 
-            // Quay về màn hình Login
-            Intent intent = new Intent(getActivity(), LoginActivity.class);
-            // Xóa sạch bộ nhớ các màn hình trước đó để không bị bấm "Back" quay lại
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-            startActivity(intent);
-
-            // Đóng Activity hiện tại (MainActivity)
-            if (getActivity() != null) {
-                getActivity().finish();
+                            Intent intent = new Intent(getActivity(), LoginActivity.class);
+                            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                            startActivity(intent);
+                            if (getActivity() != null) getActivity().finish();
+                        });
             }
         });
         return view;
@@ -96,30 +97,38 @@ public class ProfileFragment extends Fragment {
         if (currentUser != null) {
             String uid = currentUser.getUid();
 
-            // Lấy tham chiếu đến đúng User đang đăng nhập trong Database
             mDatabase.child("users").child(uid).addValueEventListener(new ValueEventListener() {
                 @Override
                 public void onDataChange(@NonNull DataSnapshot snapshot) {
                     if (snapshot.exists()) {
-                        // 1. Lấy tên từ Database (trường "name" bạn đã lưu lúc Đăng ký)
+                        // 1. Hiển thị tên
                         String name = snapshot.child("name").getValue(String.class);
+                        binding.textViewUserName.setText((name != null && !name.isEmpty()) ? name : "Người dùng");
 
-                        if (name != null && !name.isEmpty()) {
-                            binding.textViewUserName.setText(name);
-                        } else {
-                            binding.textViewUserName.setText("Người dùng");
-                        }
+                        // 2. Hiển thị Avatar (Xử lý chuỗi Base64)
+                        // CHÚ Ý: Đổi từ 'avatarUrl' thành 'avatar' cho khớp với EditProfileActivity
+                        if (snapshot.hasChild("avatar")) {
+                            String avatarBase64 = snapshot.child("avatar").getValue(String.class);
 
-                        // 2. Xử lý ảnh đại diện (Nếu bạn có lưu trường avatarUrl trong DB)
-                        // Nếu chưa có, tạm thời dùng mặc định hoặc lấy từ Firebase Auth như cũ
-                        if (snapshot.hasChild("avatarUrl")) {
-                            String avatarUrl = snapshot.child("avatarUrl").getValue(String.class);
-                            Glide.with(ProfileFragment.this)
-                                    .load(avatarUrl)
-                                    .placeholder(R.drawable.default_avatar)
-                                    .error(R.drawable.default_avatar)
-                                    .into(binding.imageViewAvatar);
+                            if (avatarBase64 != null && !avatarBase64.isEmpty()) {
+                                try {
+                                    // Giải mã chuỗi Base64 thành mảng byte
+                                    byte[] imageBytes = android.util.Base64.decode(avatarBase64, android.util.Base64.DEFAULT);
+
+                                    // Dùng Glide để load mảng byte này vào ImageView
+                                    Glide.with(ProfileFragment.this)
+                                            .load(imageBytes)
+                                            .placeholder(R.drawable.default_avatar)
+                                            .error(R.drawable.default_avatar)
+                                            .circleCrop() // Bo tròn ảnh cho đẹp giống Messenger
+                                            .into(binding.imageViewAvatar);
+                                } catch (Exception e) {
+                                    Log.e("ProfileFragment", "Lỗi giải mã ảnh: " + e.getMessage());
+                                    binding.imageViewAvatar.setImageResource(R.drawable.default_avatar);
+                                }
+                            }
                         } else {
+                            // Nếu chưa có ảnh trong DB thì dùng ảnh mặc định
                             binding.imageViewAvatar.setImageResource(R.drawable.default_avatar);
                         }
                     }
@@ -130,9 +139,6 @@ public class ProfileFragment extends Fragment {
                     Log.e("ProfileFragment", "Lỗi tải dữ liệu: " + error.getMessage());
                 }
             });
-        } else {
-            binding.textViewUserName.setText("Khách");
-            binding.imageViewAvatar.setImageResource(R.drawable.default_avatar);
         }
     }
 }

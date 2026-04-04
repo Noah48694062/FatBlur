@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.util.Base64;
 import android.view.View;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -18,6 +19,9 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class ConnectionManagementActivity extends AppCompatActivity {
 
@@ -182,22 +186,40 @@ public class ConnectionManagementActivity extends AppCompatActivity {
     private void performDisconnect(String partnerId) {
         if (myUid == null || partnerId == null) return;
 
-        // 1. Xóa partnerId của chính mình
-        mDatabase.child("users").child(myUid).child("partnerId").setValue(null)
-                .addOnSuccessListener(aVoid -> {
-                    // 2. Sau khi xóa của mình thành công, xóa tiếp của đối phương
-                    mDatabase.child("users").child(partnerId).child("partnerId").setValue(null)
-                            .addOnSuccessListener(aVoid2 -> {
-                                android.widget.Toast.makeText(this, "Đã hủy kết nối thành công", android.widget.Toast.LENGTH_SHORT).show();
-                                // Lưu ý: Vì bạn đang dùng addValueEventListener trong observeConnectionStatus(),
-                                // giao diện sẽ tự động nhảy về showNoConnectionUI() khi dữ liệu thay đổi.
-                            })
-                            .addOnFailureListener(e -> {
-                                android.widget.Toast.makeText(this, "Lỗi khi xóa phía đối phương", android.widget.Toast.LENGTH_SHORT).show();
-                            });
-                })
-                .addOnFailureListener(e -> {
-                    android.widget.Toast.makeText(this, "Lỗi kết nối mạng", android.widget.Toast.LENGTH_SHORT).show();
+        // 1. Tạo coupleKey để biết "ngăn kéo chung" nằm ở đâu
+        String coupleKey;
+        if (myUid.compareTo(partnerId) < 0) {
+            coupleKey = myUid + "_" + partnerId;
+        } else {
+            coupleKey = partnerId + "_" + myUid;
+        }
+
+        // 2. Tạo Map để xóa partnerId và connectedAt của người dùng
+        Map<String, Object> removeUpdates = new HashMap<>();
+        removeUpdates.put("partnerId", null);
+        removeUpdates.put("connectedAt", null);
+
+        // Bắt đầu chuỗi dọn dẹp (Dùng Task để đảm bảo sạch sẽ)
+        // Bước A: Xóa tin nhắn chung
+        mDatabase.child("messages").child(coupleKey).removeValue().addOnSuccessListener(aVoid1 -> {
+
+            // Bước B: Xóa ngày kỷ niệm chung
+            mDatabase.child("special_days").child(coupleKey).removeValue().addOnSuccessListener(aVoid2 -> {
+
+                // Bước C: Cập nhật lại profile của mình (Về trạng thái độc thân)
+                mDatabase.child("users").child(myUid).updateChildren(removeUpdates).addOnSuccessListener(aVoid3 -> {
+
+                    // Bước D: Cập nhật lại profile của đối phương
+                    mDatabase.child("users").child(partnerId).updateChildren(removeUpdates).addOnSuccessListener(aVoid4 -> {
+
+                        Toast.makeText(this, "Đã xóa sạch dữ liệu và hủy kết nối!", Toast.LENGTH_SHORT).show();
+                        // Lưu ý: UI sẽ tự nhảy về màn hình chưa kết nối nhờ ValueEventListener
+
+                    });
                 });
+            });
+        }).addOnFailureListener(e -> {
+            Toast.makeText(this, "Lỗi khi dọn dẹp dữ liệu: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        });
     }
 }

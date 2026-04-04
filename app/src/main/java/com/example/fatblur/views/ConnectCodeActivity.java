@@ -111,17 +111,30 @@ public class ConnectCodeActivity extends AppCompatActivity {
     }
 
     private void performConnect(String partnerUid) {
-        // Cập nhật partnerId cho cả 2 người (Kết nối 2 chiều)
-        mDatabase.child("users").child(myUid).child("partnerId").setValue(partnerUid);
-        mDatabase.child("users").child(partnerUid).child("partnerId").setValue(myUid)
+        // 1. Lấy thời điểm hiện tại làm mốc kết nối
+        long currentTime = System.currentTimeMillis();
+
+        // 2. Chuẩn bị dữ liệu cập nhật cho mình
+        java.util.HashMap<String, Object> myUpdate = new java.util.HashMap<>();
+        myUpdate.put("partnerId", partnerUid);
+        myUpdate.put("connectedAt", currentTime); // <--- LƯU MỐC THỜI GIAN KẾT NỐI
+        myUpdate.put("connectCode", null);        // Xóa mã cũ để không dùng lại được
+
+        // 3. Chuẩn bị dữ liệu cập nhật cho đối phương
+        java.util.HashMap<String, Object> partnerUpdate = new java.util.HashMap<>();
+        partnerUpdate.put("partnerId", myUid);
+        partnerUpdate.put("connectedAt", currentTime); // <--- ĐỒNG BỘ CÙNG MỘT MỐC THỜI GIAN
+        partnerUpdate.put("connectCode", null);
+
+        // 4. Thực hiện cập nhật đồng thời lên Firebase
+        mDatabase.child("users").child(myUid).updateChildren(myUpdate);
+        mDatabase.child("users").child(partnerUid).updateChildren(partnerUpdate)
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
-                        // Xóa mã mời của cả 2 để không dùng lại được nữa
-                        mDatabase.child("users").child(myUid).child("connectCode").removeValue();
-                        mDatabase.child("users").child(partnerUid).child("connectCode").removeValue();
-
-                        Toast.makeText(ConnectCodeActivity.this, "Kết nối thành công!", Toast.LENGTH_SHORT).show();
-                        finish(); // Đóng Activity này để quay về màn hình quản lý
+                        Toast.makeText(ConnectCodeActivity.this, "Kết nối thành công! Chúc mừng hai bạn ❤️", Toast.LENGTH_SHORT).show();
+                        finish(); // Quay về màn hình quản lý
+                    } else {
+                        Toast.makeText(ConnectCodeActivity.this, "Có lỗi xảy ra, vui lòng thử lại!", Toast.LENGTH_SHORT).show();
                     }
                 });
     }
