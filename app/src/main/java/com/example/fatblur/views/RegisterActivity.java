@@ -144,13 +144,48 @@ public class RegisterActivity extends AppCompatActivity {
     }
 
     private boolean validateInput(String name, String phone, String bday, String gen, String email, String pass, String confirm) {
-        if (TextUtils.isEmpty(name)) { edtName.setError("Nhập họ tên"); return false; }
-        if (TextUtils.isEmpty(phone)) { edtPhone.setError("Nhập SĐT"); return false; }
-        if (TextUtils.isEmpty(bday)) { edtBirthday.setError("Chọn ngày sinh"); return false; }
-        if (TextUtils.isEmpty(gen)) { Toast.makeText(this, "Vui lòng chọn giới tính", Toast.LENGTH_SHORT).show(); return false; }
-        if (TextUtils.isEmpty(email)) { edtEmail.setError("Nhập email"); return false; }
-        if (pass.length() < 6) { edtPassword.setError("Mật khẩu ít nhất 6 ký tự"); return false; }
-        if (!pass.equals(confirm)) { edtConfirmPassword.setError("Mật khẩu không khớp"); return false; }
+
+        // 1. Kiểm tra TRỐNG cho tất cả các trường
+        if (TextUtils.isEmpty(name)) { edtName.setError("Vui lòng nhập họ tên"); return false; }
+        if (TextUtils.isEmpty(phone)) { edtPhone.setError("Vui lòng nhập số điện thoại"); return false; }
+        if (TextUtils.isEmpty(bday)) { edtBirthday.setError("Vui lòng chọn ngày sinh"); return false; }
+        if (TextUtils.isEmpty(email)) { edtEmail.setError("Vui lòng nhập email"); return false; }
+        if (TextUtils.isEmpty(pass)) { edtPassword.setError("Vui lòng nhập mật khẩu"); return false; }
+
+        // 2. Kiểm tra giới tính (Biến 'gen' bạn truyền vào nhưng chưa check)
+        if (TextUtils.isEmpty(gen)) {
+            Toast.makeText(this, "Vui lòng chọn giới tính", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+
+        // 3. Sau khi đã điền đủ, mới kiểm tra ĐỊNH DẠNG (Logic cũ của bạn)
+        if (name.trim().length() < 2) {
+            edtName.setError("Tên phải có ít nhất 2 ký tự");
+            return false;
+        }
+
+        if (phone.length() < 10 || phone.length() > 11) {
+            edtPhone.setError("Số điện thoại phải có 10-11 số");
+            return false;
+        }
+
+        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            edtEmail.setError("Email không đúng định dạng (VD: abc@gmail.com)");
+            return false;
+        }
+
+
+
+        if (pass.length() < 6) {
+            edtPassword.setError("Mật khẩu phải từ 6 ký tự để bảo mật");
+            return false;
+        }
+
+        if (!pass.equals(confirm)) {
+            edtConfirmPassword.setError("Mật khẩu xác nhận không khớp");
+            return false;
+        }
+
         return true;
     }
 }
