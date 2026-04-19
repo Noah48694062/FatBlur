@@ -91,6 +91,15 @@
         app:cornerRadius="28dp" />
 
     <TextView
+        android:id="@+id/txtForgotPassword"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Quên mật khẩu?"
+        android:textColor="#FF5864"
+        android:layout_marginTop="10dp"
+        android:padding="5dp"/>
+
+    <TextView
         android:id="@+id/txtGoToRegister"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

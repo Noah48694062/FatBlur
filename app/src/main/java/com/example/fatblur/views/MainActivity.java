@@ -1,6 +1,7 @@
 package com.example.fatblur.views;
 
 import android.Manifest;
+import android.app.AlertDialog;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Intent;
@@ -17,10 +18,14 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import com.example.fatblur.R;
+import com.example.fatblur.models.SessionManager;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -29,12 +34,12 @@ public class MainActivity extends AppCompatActivity {
 
     private FirebaseAuth mAuth;
     private DatabaseReference mDatabase;
+    private ValueEventListener mSessionListener; // Khai báo biến để quản lý listener
     private static final int NOTIFICATION_PERMISSION_CODE = 101;
 
     @Override
     protected void onResume() {
         super.onResume();
-        // Quay lại app -> Online
         if (mAuth.getCurrentUser() != null) {
             updateUserStatus(true);
         }
@@ -43,7 +48,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        // Thoát ra màn hình chính -> Offline
         if (mAuth.getCurrentUser() != null) {
             updateUserStatus(false);
         }
@@ -59,9 +63,10 @@ public class MainActivity extends AppCompatActivity {
 
         createNotificationChannel();
         checkAndRequestNotificationPermission();
-
-        // Quan trọng: Thiết lập "chốt chặn" ngắt kết nối đột ngột
         setupPresenceSystem();
+
+        // --- QUAN TRỌNG: Kích hoạt tai nghe Session ---
+        setupSessionListener();
 
         BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation);
         bottomNav.setOnItemSelectedListener(item -> {
@@ -86,28 +91,84 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void setupSessionListener() {
+        if (mAuth.getCurrentUser() == null) return;
+        String uid = mAuth.getCurrentUser().getUid();
+
+        mSessionListener = mDatabase.child("user_status").child(uid).child("currentSessionId")
+                .addValueEventListener(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        String serverSessionId = snapshot.getValue(String.class);
+                        String localSessionId = SessionManager.getSessionId(MainActivity.this);
+
+                        // Nếu mã trên server đã đổi và không khớp với mã trong máy này
+                        if (serverSessionId != null && !serverSessionId.equals(localSessionId)) {
+                            showKickedOutDialog();
+                        }
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError error) {}
+                });
+    }
+
+    private void showKickedOutDialog() {
+        if (isFinishing()) return;
+
+        new AlertDialog.Builder(this)
+                .setTitle("Phiên đăng nhập hết hạn")
+                .setMessage("Tài khoản của bạn đã được đăng nhập từ một thiết bị khác. Bạn sẽ được đăng xuất để bảo mật.")
+                .setPositiveButton("Đồng ý", (dialog, which) -> {
+                    performLogout();
+                })
+                .setCancelable(false) // Bắt buộc nhấn OK mới thoát được
+                .show();
+    }
+
+    private void performLogout() {
+        // Gỡ listener trước khi logout để tránh lỗi logic
+        if (mSessionListener != null && mAuth.getCurrentUser() != null) {
+            String uid = mAuth.getCurrentUser().getUid();
+            mDatabase.child("user_status").child(uid).child("currentSessionId").removeEventListener(mSessionListener);
+        }
+
+        mAuth.signOut();
+        Intent intent = new Intent(MainActivity.this, LoginActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // Dọn dẹp listener khi activity bị hủy hẳn để tránh rò rỉ bộ nhớ
+        if (mSessionListener != null && mAuth.getCurrentUser() != null) {
+            String uid = mAuth.getCurrentUser().getUid();
+            mDatabase.child("user_status").child(uid).child("currentSessionId").removeEventListener(mSessionListener);
+        }
+    }
+
     private void setupPresenceSystem() {
         if (mAuth.getCurrentUser() == null) return;
         String uid = mAuth.getCurrentUser().getUid();
-        // Nếu sập nguồn/mất mạng, server Firebase tự set isOnline = false
         mDatabase.child("user_status").child(uid).child("isOnline").onDisconnect().setValue(false);
     }
 
     private void updateUserStatus(boolean isOnline) {
         if (mAuth.getCurrentUser() == null) return;
         String uid = mAuth.getCurrentUser().getUid();
-
         Map<String, Object> statusUpdate = new HashMap<>();
         statusUpdate.put("isOnline", isOnline);
         statusUpdate.put("lastActiveAt", System.currentTimeMillis());
         statusUpdate.put("batteryLevel", getBatteryPercentage());
-
         mDatabase.child("user_status").child(uid).updateChildren(statusUpdate);
     }
 
     private int getBatteryPercentage() {
         IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
-        Intent batteryStatus = registerReceiver(null, ifilter);
+        Intent batteryStatus = getApplicationContext().registerReceiver(null, ifilter);
         if (batteryStatus != null) {
             int level = batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
             int scale = batteryStatus.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
