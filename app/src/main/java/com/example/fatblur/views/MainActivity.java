@@ -93,7 +93,11 @@ public class MainActivity extends AppCompatActivity {
 
     private void setupSessionListener() {
         if (mAuth.getCurrentUser() == null) return;
-        String uid = mAuth.getCurrentUser().getUid();
+
+        // Reset cờ mỗi khi bắt đầu nghe Session mới
+        LoginActivity.isLoggingOut = false;
+
+        String uid = mAuth.getUid();
 
         mSessionListener = mDatabase.child("user_status").child(uid).child("currentSessionId")
                 .addValueEventListener(new ValueEventListener() {
@@ -114,7 +118,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showKickedOutDialog() {
-        if (isFinishing()) return;
+        if (LoginActivity.isLoggingOut || isFinishing()) return;
 
         new AlertDialog.Builder(this)
                 .setTitle("Phiên đăng nhập hết hạn")

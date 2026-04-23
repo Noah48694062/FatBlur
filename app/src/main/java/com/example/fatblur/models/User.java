@@ -17,7 +17,9 @@ public class User implements Serializable {
     public String partnerId;    // ID người yêu 
     public boolean isDeleted;   // Đánh dấu đã xóa tài khoản 
     public long createdAt;      // Thời điểm tạo tài khoản (ms) 
-    public long updatedAt;      // Lần cập nhật gần nhất (ms) 
+    public long updatedAt;      // Lần cập nhật gần nhất (ms)
+    public String currentSessionId;
+    public boolean isSharingLocation;
 
     // 2. Constructor mặc định (Bắt buộc phải có để Firebase hoạt động) 
     public User() {
@@ -31,7 +33,9 @@ public class User implements Serializable {
         this.userCode = userCode;
         this.createdAt = createdAt;
         this.updatedAt = createdAt;
-        this.isDeleted = false; // Mặc định tài khoản mới chưa bị xóa 
+        this.isDeleted = false; // Mặc định tài khoản mới chưa bị xóa
+        this.isSharingLocation = true;
+        this.currentSessionId = "";
     }
 
     // 4. Các Getter và Setter (Tùy chọn, nhưng nên có để bảo mật dữ liệu)

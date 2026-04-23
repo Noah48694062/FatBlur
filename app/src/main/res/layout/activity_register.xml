@@ -161,7 +161,7 @@
             app:hintTextColor="#FF5864"
             app:startIconDrawable="@android:drawable/ic_dialog_email"
             app:startIconTint="#FF5864"
-            android:hint="Email">
+            android:hint="Email (Bạn sẽ cần email để đổi mật khẩu">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/edtEmailReg"
                 android:layout_width="match_parent"

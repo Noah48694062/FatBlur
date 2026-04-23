@@ -6,12 +6,21 @@
     android:background="#FFF5F5"
     android:padding="16dp">
 
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Thông tin đối phương"
+        android:layout_marginBottom="10dp"
+        android:textColor="#555"
+        android:textStyle="bold"
+        android:textSize="14sp"/>
+
     <androidx.cardview.widget.CardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         app:cardCornerRadius="20dp"
         app:cardElevation="4dp"
-        android:layout_marginBottom="20dp">
+        android:layout_marginBottom="25dp">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -22,8 +31,8 @@
 
             <de.hdodenhof.circleimageview.CircleImageView
                 android:id="@+id/imgPartnerAvatar"
-                android:layout_width="120dp"
-                android:layout_height="120dp"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
                 android:src="@drawable/ic_launcher_foreground"
                 app:civ_border_width="3dp"
                 app:civ_border_color="#FF5864"/>
@@ -33,15 +42,25 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Người yêu"
-                android:textSize="22sp"
+                android:textSize="20sp"
                 android:textStyle="bold"
                 android:layout_marginTop="12dp"/>
+
+            <TextView
+                android:id="@+id/txtDistance"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Cách bạn: -- km"
+                android:textColor="#FF5864"
+                android:textStyle="italic"
+                android:layout_marginTop="4dp"/>
 
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:gravity="center">
+                android:gravity="center"
+                android:layout_marginTop="8dp">
 
                 <View
                     android:id="@+id/viewOnlineStatus"
@@ -61,19 +80,20 @@
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="15dp"
+                android:layout_marginTop="10dp"
                 android:gravity="center">
-
                 <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:src="@android:drawable/ic_lock_idle_low_battery"/> <TextView
-                android:id="@+id/txtPartnerBattery"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text=" 85%"
-                android:textSize="18sp"
-                android:textColor="#FF5864"/>
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@android:drawable/ic_lock_idle_low_battery"
+                    app:tint="#FF5864" />
+                <TextView
+                    android:id="@+id/txtPartnerBattery"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=" 85%"
+                    android:textSize="16sp"
+                    android:textColor="#FF5864"/>
             </LinearLayout>
         </LinearLayout>
     </androidx.cardview.widget.CardView>
@@ -83,6 +103,66 @@
         android:layout_height="wrap_content"
         android:text="Trạng thái của bạn"
         android:layout_marginBottom="10dp"
-        android:textColor="#555"/>
+        android:textColor="#555"
+        android:textStyle="bold"
+        android:textSize="14sp"/>
+
+    <androidx.cardview.widget.CardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:cardCornerRadius="15dp"
+        app:cardElevation="2dp"
+        android:clickable="false"
+        android:focusable="false">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="15dp"
+            android:gravity="center_vertical">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@android:drawable/ic_menu_mylocation"
+                app:tint="#FF5864"/>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginStart="15dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Chia sẻ vị trí"
+                    android:textStyle="bold"
+                    android:textSize="15sp"
+                    android:textColor="#333"/>
+
+                <TextView
+                    android:id="@+id/txtMyPrivacyStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Đang cập nhật..."
+                    android:textSize="12sp"
+                    android:textColor="#8BC34A"
+                    android:layout_marginTop="2dp"/>
+            </LinearLayout>
+
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="* Thay đổi quyền riêng tư tại mục Hồ sơ"
+        android:textSize="11sp"
+        android:textColor="#AAA"
+        android:gravity="center"
+        android:layout_marginTop="10dp"
+        android:textStyle="italic"/>
 
 </LinearLayout>

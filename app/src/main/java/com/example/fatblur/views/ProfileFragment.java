@@ -24,6 +24,9 @@ import com.google.firebase.database.DatabaseReference;    // Import Realtime Dat
 import com.google.firebase.database.FirebaseDatabase;    // Import Realtime Database
 import com.google.firebase.database.ValueEventListener;   // Import Realtime Database
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class ProfileFragment extends Fragment {
 
     private Button btnLogout;
@@ -72,17 +75,32 @@ public class ProfileFragment extends Fragment {
             startActivity(intent);
         });
 
+        binding.layoutPrivacySettings.setOnClickListener(v -> {
+            Intent intent = new Intent(getActivity(), PrivacySettingsActivity.class);
+            startActivity(intent);
+        });
+
+        // 6. Xử lý sự kiện nhấn nút Đăng xuất
         // 6. Xử lý sự kiện nhấn nút Đăng xuất
         binding.btnLogOutProfile.setOnClickListener(v -> {
+            // 1. Dựng cờ: "Tôi đang chủ động thoát đây!"
+            LoginActivity.isLoggingOut = true;
+
             String uid = mAuth.getUid();
             if (uid != null) {
-                // 1. Cập nhật trạng thái Offline TRƯỚC KHI đăng xuất
-                mDatabase.child("user_status").child(uid).child("isOnline").setValue(false)
+                Map<String, Object> logoutUpdates = new HashMap<>();
+                logoutUpdates.put("isOnline", false);
+                logoutUpdates.put("currentSessionId", "");
+
+                mDatabase.child("user_status").child(uid).updateChildren(logoutUpdates)
                         .addOnCompleteListener(task -> {
-                            // 2. Sau khi DB cập nhật xong mới thực hiện Sign Out
                             mAuth.signOut();
 
+                            // Xóa trắng Session ID ở bộ nhớ máy luôn cho sạch
+                            com.example.fatblur.models.SessionManager.saveSessionId(getActivity(), "");
+
                             Intent intent = new Intent(getActivity(), LoginActivity.class);
+                            // Flag này giúp xóa sạch lịch sử các màn hình trước đó
                             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                             startActivity(intent);
                             if (getActivity() != null) getActivity().finish();

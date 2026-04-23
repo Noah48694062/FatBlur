@@ -37,6 +37,7 @@ public class LoginActivity extends AppCompatActivity {
     private TextView txtRegister, txtForgotPassword; // Thêm TextView quên mật khẩu
     private FirebaseAuth mAuth;
     private DatabaseReference mDatabase;
+    public static boolean isLoggingOut = false;
 
     @Override
     protected void onStart() {

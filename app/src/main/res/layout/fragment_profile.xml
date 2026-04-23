@@ -127,6 +127,39 @@
                     app:tint="#CCCCCC" />
             </LinearLayout>
 
+            <LinearLayout
+                android:id="@+id/layoutPrivacySettings"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingVertical="16dp"
+                android:gravity="center_vertical"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginEnd="16dp"
+                    android:src="@android:drawable/ic_menu_mylocation"
+                    app:tint="#666666" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Cài đặt quyền riêng tư"
+                    android:textSize="16sp"
+                    android:textColor="#333333" />
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/forward_arrow"
+                    app:tint="#CCCCCC" />
+            </LinearLayout>
+
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"

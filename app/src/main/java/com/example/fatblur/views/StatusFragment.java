@@ -5,14 +5,19 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.location.Location;
 import android.os.BatteryManager;
 import android.os.Bundle;
 import android.os.Looper;
 import android.text.format.DateUtils;
+import android.util.Base64;
+import android.graphics.BitmapFactory;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.Toast;
+import android.widget.ImageButton;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -54,12 +59,16 @@ public class StatusFragment extends Fragment implements OnMapReadyCallback {
     private FusedLocationProviderClient fusedLocationClient;
     private LocationCallback locationCallback;
 
-    private TextView txtPartnerName, txtPartnerBattery, txtLastActive;
+    private TextView txtPartnerName, txtPartnerBattery, txtLastActive, txtDistance, txtMyPrivacyStatus;
     private View viewOnlineStatus;
     private de.hdodenhof.circleimageview.CircleImageView imgPartnerAvatar;
+    private Boolean lastPartnerSharingStatus = null;
+    private View layoutPartnerPrivacyBanner;
+    private boolean isBannerDismissedManually = false;
 
     private boolean isFirstMyLocation = true;
     private boolean isFirstPartnerLocation = true;
+    private double myLat = 0, myLng = 0;
 
     @Nullable
     @Override
@@ -71,6 +80,15 @@ public class StatusFragment extends Fragment implements OnMapReadyCallback {
         txtLastActive = v.findViewById(R.id.txtLastActive);
         viewOnlineStatus = v.findViewById(R.id.viewOnlineStatus);
         imgPartnerAvatar = v.findViewById(R.id.imgPartnerAvatar);
+        txtDistance = v.findViewById(R.id.txtDistance);
+        txtMyPrivacyStatus = v.findViewById(R.id.txtMyPrivacyStatus);
+        layoutPartnerPrivacyBanner = v.findViewById(R.id.layoutPartnerPrivacyBanner);
+        View btnCloseBanner = v.findViewById(R.id.btnCloseBanner);
+
+        btnCloseBanner.setOnClickListener(view -> {
+            layoutPartnerPrivacyBanner.setVisibility(View.GONE);
+            isBannerDismissedManually = true;
+        });
 
         View bottomSheet = v.findViewById(R.id.bottom_sheet);
         bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet);
@@ -84,61 +102,141 @@ public class StatusFragment extends Fragment implements OnMapReadyCallback {
         }
 
         myUid = FirebaseAuth.getInstance().getUid();
+        listenToMyPrivacyStatus();
         getPartnerInfo();
 
         return v;
     }
 
-//    @Override
-//    public void onResume() {
-//        super.onResume();
-//        // Khi quay lại Fragment, bắt đầu cập nhật vị trí và báo Online
-//        startLocationUpdates();
-//        updateOnlineStatus(true);
-//    }
-//
-//    @Override
-//    public void onPause() {
-//        super.onPause();
-//        // Dừng cập nhật vị trí để tiết kiệm pin và báo Offline
-//        if (fusedLocationClient != null && locationCallback != null) {
-//            fusedLocationClient.removeLocationUpdates(locationCallback);
-//        }
-//        updateOnlineStatus(false);
-//    }
+    private void listenToMyPrivacyStatus() {
+        if (myUid == null) return;
+        FirebaseDatabase.getInstance().getReference("user_status").child(myUid).child("isSharingLocation")
+                .addValueEventListener(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        if (!isAdded()) return;
+                        boolean isSharing = snapshot.exists() ? snapshot.getValue(Boolean.class) : true;
+                        txtMyPrivacyStatus.setText(isSharing ?
+                                "Đối tác có thể nhìn thấy vị trí của bạn" :
+                                "Bạn hiện đang chặn đối tác truy cập vị trí");
+                        txtMyPrivacyStatus.setTextColor(isSharing ? 0xFF8BC34A : 0xFFFF5864);
+                    }
+                    @Override public void onCancelled(@NonNull DatabaseError error) {}
+                });
+    }
 
-    private void updateOnlineStatus(boolean isOnline) {
-        if (myUid != null) {
-            FirebaseDatabase.getInstance().getReference("user_status")
-                    .child(myUid).child("isOnline").setValue(isOnline);
+    private void listenToPartnerStatus() {
+        if (partnerId == null) return;
+        DatabaseReference db = FirebaseDatabase.getInstance().getReference();
+
+        db.child("users").child(partnerId).addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (!isAdded()) return;
+                if (snapshot.exists()) {
+                    String name = snapshot.child("name").getValue(String.class);
+                    String avatar = snapshot.child("avatar").getValue(String.class);
+                    txtPartnerName.setText(name != null ? name : "Đối tác");
+                    setPartnerAvatar(avatar);
+                }
+            }
+            @Override public void onCancelled(@NonNull DatabaseError error) {}
+        });
+
+        db.child("user_status").child(partnerId).addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (!isAdded() || !snapshot.exists()) return;
+
+                Double lat = snapshot.child("latitude").getValue(Double.class);
+                Double lng = snapshot.child("longitude").getValue(Double.class);
+                Integer battery = snapshot.child("batteryLevel").getValue(Integer.class);
+                Boolean isOnline = snapshot.child("isOnline").getValue(Boolean.class);
+                Long lastActive = snapshot.child("lastActiveAt").getValue(Long.class);
+                Boolean isSharing = snapshot.child("isSharingLocation").getValue(Boolean.class);
+
+                if (isSharing == null) isSharing = true;
+
+                if (lastPartnerSharingStatus != null && lastPartnerSharingStatus != isSharing) {
+                    if (isAdded()) {
+                        Toast.makeText(getContext(), isSharing ? "Đối tác đã bật lại vị trí" : "Đối tác vừa tắt vị trí", Toast.LENGTH_SHORT).show();
+                    }
+                }
+                lastPartnerSharingStatus = isSharing;
+                txtPartnerBattery.setText((battery != null ? battery : 0) + "%");
+
+                if (!isSharing) {
+                    if (partnerMarker != null) { partnerMarker.remove(); partnerMarker = null; }
+                    if (!isBannerDismissedManually) layoutPartnerPrivacyBanner.setVisibility(View.VISIBLE);
+                    txtDistance.setText("Vị trí: Đã ẩn");
+                    txtLastActive.setText("Đối tác hiện đang ẩn danh");
+                    txtLastActive.setTextColor(0xFFFF5864);
+                    viewOnlineStatus.setBackgroundResource(R.drawable.bg_offline_dot);
+                } else {
+                    layoutPartnerPrivacyBanner.setVisibility(View.GONE);
+                    isBannerDismissedManually = false;
+                    txtLastActive.setTextColor(0xFF888888);
+                    updateOnlineStatusUI(isOnline, lastActive);
+
+                    if (mMap != null && lat != null && lng != null) {
+                        LatLng pos = new LatLng(lat, lng);
+                        if (partnerMarker == null) {
+                            partnerMarker = mMap.addMarker(new MarkerOptions().position(pos).title(txtPartnerName.getText().toString()));
+                        } else {
+                            partnerMarker.setPosition(pos);
+                        }
+
+                        if (myLat != 0 && myLng != 0) {
+                            float[] results = new float[1];
+                            Location.distanceBetween(myLat, myLng, lat, lng, results);
+                            float d = results[0];
+                            txtDistance.setText(d < 1000 ? String.format("Cách bạn: %.0f m", d) : String.format("Cách bạn: %.1f km", d / 1000));
+                        }
+
+                        if (isFirstPartnerLocation) {
+                            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(pos, 15f));
+                            isFirstPartnerLocation = false;
+                        }
+                    }
+                }
+            }
+            @Override public void onCancelled(@NonNull DatabaseError error) {}
+        });
+    }
+
+    private void updateOnlineStatusUI(Boolean isOnline, Long lastActive) {
+        if (isOnline != null && isOnline) {
+            txtLastActive.setText("Đang trực tuyến");
+            viewOnlineStatus.setBackgroundResource(R.drawable.bg_online_dot);
+        } else if (lastActive != null) {
+            String timeAgo = (String) DateUtils.getRelativeTimeSpanString(lastActive, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS);
+            txtLastActive.setText("Hoạt động " + timeAgo);
+            viewOnlineStatus.setBackgroundResource(R.drawable.bg_offline_dot);
         }
     }
 
     private void startLocationUpdates() {
-        if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            return;
-        }
+        if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) return;
 
         LocationRequest locationRequest = new LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 10000)
-                .setMinUpdateIntervalMillis(5000)
-                .build();
+                .setMinUpdateIntervalMillis(5000).build();
 
         locationCallback = new LocationCallback() {
             @Override
             public void onLocationResult(@NonNull LocationResult locationResult) {
-                for (android.location.Location location : locationResult.getLocations()) {
+                for (Location location : locationResult.getLocations()) {
                     if (location != null) {
-                        updateMyLocationToFirebase(location.getLatitude(), location.getLongitude());
-
+                        myLat = location.getLatitude();
+                        myLng = location.getLongitude();
+                        updateMyLocationToFirebase(myLat, myLng);
                         if (mMap != null && isFirstMyLocation) {
-                            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(location.getLatitude(), location.getLongitude()), 15f));
+                            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(myLat, myLng), 15f));
                             isFirstMyLocation = false;
                         }
                     }
                 }
             }
         };
-
         fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper());
     }
 
@@ -149,35 +247,33 @@ public class StatusFragment extends Fragment implements OnMapReadyCallback {
         updates.put("longitude", lng);
         updates.put("lastActiveAt", System.currentTimeMillis());
         updates.put("batteryLevel", getBatteryPercentage());
-        // TUYỆT ĐỐI KHÔNG để isOnline ở đây
-
         FirebaseDatabase.getInstance().getReference("user_status").child(myUid).updateChildren(updates);
     }
 
     @Override
-    public void onStart() {
-        super.onStart();
-        startLocationUpdates(); // Bắt đầu lấy vị trí khi mở tab này
-    }
+    public void onStart() { super.onStart(); startLocationUpdates(); }
 
     @Override
     public void onStop() {
         super.onStop();
-        // Dừng lấy vị trí khi chuyển tab hoặc đóng app để tiết kiệm pin
         if (fusedLocationClient != null && locationCallback != null) {
             fusedLocationClient.removeLocationUpdates(locationCallback);
         }
     }
 
-    private int getBatteryPercentage() {
-        IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
-        Intent batteryStatus = requireContext().registerReceiver(null, ifilter);
-        if (batteryStatus != null) {
-            int level = batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
-            int scale = batteryStatus.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
-            return (int) ((level / (float) scale) * 100);
+    @Override
+    public void onMapReady(@NonNull GoogleMap googleMap) {
+        mMap = googleMap;
+        if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            mMap.setMyLocationEnabled(true);
         }
-        return 0;
+        mMap.setOnMarkerClickListener(marker -> {
+            if (partnerMarker != null && marker.equals(partnerMarker)) {
+                bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+            }
+            return true;
+        });
+        mMap.setOnMapClickListener(latLng -> bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN));
     }
 
     private void getPartnerInfo() {
@@ -195,81 +291,15 @@ public class StatusFragment extends Fragment implements OnMapReadyCallback {
                 });
     }
 
-    private void listenToPartnerStatus() {
-        if (partnerId == null) return;
-        DatabaseReference db = FirebaseDatabase.getInstance().getReference();
-
-        // Lấy thông tin Tên/Ảnh (Cố định)
-        db.child("users").child(partnerId).addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                if (snapshot.exists()) {
-                    String name = snapshot.child("name").getValue(String.class);
-                    String avatar = snapshot.child("avatar").getValue(String.class);
-                    txtPartnerName.setText(name != null ? name : "Đối tác");
-                    setPartnerAvatar(avatar);
-                }
-            }
-            @Override public void onCancelled(@NonNull DatabaseError error) {}
-        });
-
-        // Lấy trạng thái GPS/Pin/Online (Thay đổi liên tục)
-        db.child("user_status").child(partnerId).addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                if (!snapshot.exists()) return;
-
-                Double lat = snapshot.child("latitude").getValue(Double.class);
-                Double lng = snapshot.child("longitude").getValue(Double.class);
-                Integer battery = snapshot.child("batteryLevel").getValue(Integer.class);
-                Boolean isOnline = snapshot.child("isOnline").getValue(Boolean.class);
-                Long lastActive = snapshot.child("lastActiveAt").getValue(Long.class);
-
-                // Hiển thị Pin
-                txtPartnerBattery.setText((battery != null ? battery : 0) + "%");
-
-                // Hiển thị trạng thái Online/Thời gian hoạt động cuối
-                if (isOnline != null && isOnline) {
-                    txtLastActive.setText("Đang trực tuyến");
-                    viewOnlineStatus.setBackgroundResource(R.drawable.bg_online_dot);
-                } else if (lastActive != null) {
-                    // Chuyển timestamp thành chữ "x phút trước"
-                    String timeAgo = (String) DateUtils.getRelativeTimeSpanString(lastActive,
-                            System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS);
-                    txtLastActive.setText("Hoạt động " + timeAgo);
-                    viewOnlineStatus.setBackgroundResource(R.drawable.bg_offline_dot);
-                }
-
-                // Cập nhật vị trí trên Map
-                if (mMap != null && lat != null && lng != null) {
-                    LatLng pos = new LatLng(lat, lng);
-                    if (partnerMarker == null) {
-                        partnerMarker = mMap.addMarker(new MarkerOptions().position(pos).title(txtPartnerName.getText().toString()));
-                    } else {
-                        partnerMarker.setPosition(pos);
-                    }
-
-                    if (isFirstPartnerLocation) {
-                        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(pos, 15f));
-                        isFirstPartnerLocation = false;
-                    }
-                }
-            }
-            @Override public void onCancelled(@NonNull DatabaseError error) {}
-        });
-    }
-
-    @Override
-    public void onMapReady(@NonNull GoogleMap googleMap) {
-        mMap = googleMap;
-        if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            mMap.setMyLocationEnabled(true);
+    private int getBatteryPercentage() {
+        IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+        Intent batteryStatus = requireContext().registerReceiver(null, ifilter);
+        if (batteryStatus != null) {
+            int level = batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+            int scale = batteryStatus.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
+            return (int) ((level / (float) scale) * 100);
         }
-        mMap.setOnMarkerClickListener(marker -> {
-            bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
-            return true;
-        });
-        mMap.setOnMapClickListener(latLng -> bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN));
+        return 0;
     }
 
     private void setPartnerAvatar(String base64String) {
@@ -278,8 +308,8 @@ public class StatusFragment extends Fragment implements OnMapReadyCallback {
             return;
         }
         try {
-            byte[] bytes = android.util.Base64.decode(base64String, android.util.Base64.DEFAULT);
-            imgPartnerAvatar.setImageBitmap(android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.length));
+            byte[] bytes = Base64.decode(base64String, Base64.DEFAULT);
+            imgPartnerAvatar.setImageBitmap(BitmapFactory.decodeByteArray(bytes, 0, bytes.length));
         } catch (Exception e) {
             imgPartnerAvatar.setImageResource(R.drawable.default_avatar);
         }
