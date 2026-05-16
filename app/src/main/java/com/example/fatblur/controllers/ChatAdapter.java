@@ -97,7 +97,6 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 chatDatabase.child(msg.getMessageId()).removeValue()
                         .addOnSuccessListener(aVoid -> Toast.makeText(v.getContext(), "Đã thu hồi", Toast.LENGTH_SHORT).show());
             } else {
-                // Định nghĩa hàm sửa tin nhắn
                 showEditDialog(v.getContext(), msg);
             }
             return true;

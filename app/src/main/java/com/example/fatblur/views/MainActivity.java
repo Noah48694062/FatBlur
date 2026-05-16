@@ -34,8 +34,11 @@ public class MainActivity extends AppCompatActivity {
 
     private FirebaseAuth mAuth;
     private DatabaseReference mDatabase;
-    private ValueEventListener mSessionListener; // Khai báo biến để quản lý listener
+    private ValueEventListener mSessionListener;
+
+    // Khai báo 2 mã định danh quyền riêng biệt
     private static final int NOTIFICATION_PERMISSION_CODE = 101;
+    private static final int LOCATION_PERMISSION_CODE = 100;
 
     @Override
     protected void onResume() {
@@ -61,13 +64,16 @@ public class MainActivity extends AppCompatActivity {
         mAuth = FirebaseAuth.getInstance();
         mDatabase = FirebaseDatabase.getInstance().getReference();
 
+        // 1. Khởi tạo các hệ thống nền
         createNotificationChannel();
-        checkAndRequestNotificationPermission();
         setupPresenceSystem();
-
-        // --- QUAN TRỌNG: Kích hoạt tai nghe Session ---
         setupSessionListener();
 
+        // 2. Yêu cầu các quyền cần thiết ngay khi vào app
+        checkAndRequestNotificationPermission();
+        checkAndRequestLocationPermission();
+
+        // 3. Thiết lập Navigation
         BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation);
         bottomNav.setOnItemSelectedListener(item -> {
             Fragment selectedFragment = null;
@@ -91,12 +97,49 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    // --- HÀM XIN QUYỀN VỊ TRÍ ---
+    private void checkAndRequestLocationPermission() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION},
+                    LOCATION_PERMISSION_CODE);
+        }
+    }
+
+    private void checkAndRequestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.POST_NOTIFICATIONS}, NOTIFICATION_PERMISSION_CODE);
+            }
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (requestCode == NOTIFICATION_PERMISSION_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                showToast("Đã bật thông báo kỷ niệm.");
+            }
+        }
+        // Xử lý khi người dùng bấm Allow cho Vị trí
+        else if (requestCode == LOCATION_PERMISSION_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                showToast("Đã nhận quyền vị trí!");
+                // Refresh lại fragment status để map nhận quyền ngay lập tức
+                getSupportFragmentManager().beginTransaction()
+                        .replace(R.id.fragment_container, new StatusFragment())
+                        .commit();
+            } else {
+                showToast("Bạn cần cấp quyền vị trí để ứng dụng hoạt động chính xác.");
+            }
+        }
+    }
+
     private void setupSessionListener() {
         if (mAuth.getCurrentUser() == null) return;
-
-        // Reset cờ mỗi khi bắt đầu nghe Session mới
         LoginActivity.isLoggingOut = false;
-
         String uid = mAuth.getUid();
 
         mSessionListener = mDatabase.child("user_status").child(uid).child("currentSessionId")
@@ -106,14 +149,11 @@ public class MainActivity extends AppCompatActivity {
                         String serverSessionId = snapshot.getValue(String.class);
                         String localSessionId = SessionManager.getSessionId(MainActivity.this);
 
-                        // Nếu mã trên server đã đổi và không khớp với mã trong máy này
                         if (serverSessionId != null && !serverSessionId.equals(localSessionId)) {
                             showKickedOutDialog();
                         }
                     }
-
-                    @Override
-                    public void onCancelled(@NonNull DatabaseError error) {}
+                    @Override public void onCancelled(@NonNull DatabaseError error) {}
                 });
     }
 
@@ -122,21 +162,17 @@ public class MainActivity extends AppCompatActivity {
 
         new AlertDialog.Builder(this)
                 .setTitle("Phiên đăng nhập hết hạn")
-                .setMessage("Tài khoản của bạn đã được đăng nhập từ một thiết bị khác. Bạn sẽ được đăng xuất để bảo mật.")
-                .setPositiveButton("Đồng ý", (dialog, which) -> {
-                    performLogout();
-                })
-                .setCancelable(false) // Bắt buộc nhấn OK mới thoát được
+                .setMessage("Tài khoản đã đăng nhập từ thiết bị khác. Bạn sẽ được đăng xuất để bảo mật.")
+                .setPositiveButton("Đồng ý", (dialog, which) -> performLogout())
+                .setCancelable(false)
                 .show();
     }
 
     private void performLogout() {
-        // Gỡ listener trước khi logout để tránh lỗi logic
         if (mSessionListener != null && mAuth.getCurrentUser() != null) {
-            String uid = mAuth.getCurrentUser().getUid();
+            String uid = mAuth.getUid();
             mDatabase.child("user_status").child(uid).child("currentSessionId").removeEventListener(mSessionListener);
         }
-
         mAuth.signOut();
         Intent intent = new Intent(MainActivity.this, LoginActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -147,22 +183,21 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        // Dọn dẹp listener khi activity bị hủy hẳn để tránh rò rỉ bộ nhớ
         if (mSessionListener != null && mAuth.getCurrentUser() != null) {
-            String uid = mAuth.getCurrentUser().getUid();
+            String uid = mAuth.getUid();
             mDatabase.child("user_status").child(uid).child("currentSessionId").removeEventListener(mSessionListener);
         }
     }
 
     private void setupPresenceSystem() {
         if (mAuth.getCurrentUser() == null) return;
-        String uid = mAuth.getCurrentUser().getUid();
+        String uid = mAuth.getUid();
         mDatabase.child("user_status").child(uid).child("isOnline").onDisconnect().setValue(false);
     }
 
     private void updateUserStatus(boolean isOnline) {
         if (mAuth.getCurrentUser() == null) return;
-        String uid = mAuth.getCurrentUser().getUid();
+        String uid = mAuth.getUid();
         Map<String, Object> statusUpdate = new HashMap<>();
         statusUpdate.put("isOnline", isOnline);
         statusUpdate.put("lastActiveAt", System.currentTimeMillis());
@@ -183,31 +218,9 @@ public class MainActivity extends AppCompatActivity {
 
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            String channelId = "special_day_channel";
-            CharSequence name = "Kỷ niệm SecretLove";
-            String description = "Thông báo nhắc nhở ngày đặc biệt của cặp đôi";
-            NotificationChannel channel = new NotificationChannel(channelId, name, NotificationManager.IMPORTANCE_HIGH);
-            channel.setDescription(description);
-            NotificationManager notificationManager = getSystemService(NotificationManager.class);
-            if (notificationManager != null) notificationManager.createNotificationChannel(channel);
-        }
-    }
-
-    private void checkAndRequestNotificationPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.POST_NOTIFICATIONS}, NOTIFICATION_PERMISSION_CODE);
-            }
-        }
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == NOTIFICATION_PERMISSION_CODE) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                showToast("Cảm ơn! Bạn sẽ nhận được thông báo kỷ niệm.");
-            }
+            NotificationChannel channel = new NotificationChannel("special_day_channel", "Kỷ niệm SecretLove", NotificationManager.IMPORTANCE_HIGH);
+            NotificationManager manager = getSystemService(NotificationManager.class);
+            if (manager != null) manager.createNotificationChannel(channel);
         }
     }
 

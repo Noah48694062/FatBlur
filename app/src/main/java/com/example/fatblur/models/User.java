@@ -42,4 +42,131 @@ public class User implements Serializable {
     // Bạn có thể nhấn Alt + Insert trong Android Studio để tự động tạo nhanh
     //getter va setter
 
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getPasswordHash() {
+        return passwordHash;
+    }
+
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
+
+    public String getUserCode() {
+        return userCode;
+    }
+
+    public void setUserCode(String userCode) {
+        this.userCode = userCode;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getAvatar() {
+        return avatar;
+    }
+
+    public void setAvatar(String avatar) {
+        this.avatar = avatar;
+    }
+
+    public String getBirthday() {
+        return birthday;
+    }
+
+    public void setBirthday(String birthday) {
+        this.birthday = birthday;
+    }
+
+    public String getGender() {
+        return gender;
+    }
+
+    public void setGender(String gender) {
+        this.gender = gender;
+    }
+
+    public String getBio() {
+        return bio;
+    }
+
+    public void setBio(String bio) {
+        this.bio = bio;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
+    public String getPartnerId() {
+        return partnerId;
+    }
+
+    public void setPartnerId(String partnerId) {
+        this.partnerId = partnerId;
+    }
+
+    public boolean isDeleted() {
+        return isDeleted;
+    }
+
+    public void setDeleted(boolean deleted) {
+        isDeleted = deleted;
+    }
+
+    public long getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(long createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public long getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(long updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public String getCurrentSessionId() {
+        return currentSessionId;
+    }
+
+    public void setCurrentSessionId(String currentSessionId) {
+        this.currentSessionId = currentSessionId;
+    }
+
+    public boolean isSharingLocation() {
+        return isSharingLocation;
+    }
+
+    public void setSharingLocation(boolean sharingLocation) {
+        isSharingLocation = sharingLocation;
+    }
 }

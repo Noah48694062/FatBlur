@@ -81,11 +81,11 @@ public class ChatFragment extends Fragment {
 
             // 1. Tạo một tham chiếu mới với ID tự động (Key)
             DatabaseReference newMsgRef = chatRef.child("chats").push();
-            String messageId = newMsgRef.getKey(); // Đây là "Chứng minh thư" của tin nhắn
+            String messageId = newMsgRef.getKey();
 
             // 2. Tạo đối tượng tin nhắn và gán ID cho nó
             Message msg = new Message(myUid, content, currentTime);
-            msg.setMessageId(messageId); // Giả sử bạn đã thêm trường messageId vào Model Message
+            msg.setMessageId(messageId);
 
             // 3. Đẩy lên Firebase
             newMsgRef.setValue(msg);
@@ -117,7 +117,6 @@ public class ChatFragment extends Fragment {
 
 
     private void listenForMessages() {
-        // Chỉ lắng nghe node "chats" để lấy tin nhắn, tránh lấy nhầm dữ liệu streakInfo
         chatRef.child("chats").addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
