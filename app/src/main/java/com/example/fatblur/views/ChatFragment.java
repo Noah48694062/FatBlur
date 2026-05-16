@@ -1,6 +1,7 @@
 package com.example.fatblur.views;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -18,6 +19,7 @@ import com.example.fatblur.models.Message;
 import com.example.fatblur.models.User;
 import com.example.fatblur.controllers.ChatAdapter;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -35,6 +37,7 @@ public class ChatFragment extends Fragment {
     private List<Message> messageList = new ArrayList<>();
     private ChatAdapter adapter;
     private View layoutNotConnected, layoutChatActive;
+    private boolean isFirstLoad = true;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -159,9 +162,68 @@ public class ChatFragment extends Fragment {
 //        @Override public void onCancelled(@NonNull DatabaseError error) {}
 //    });
 //}
+
+
+//    private void listenForMessages() {
+//
+//        chatRef.child("chats").addChildEventListener(new com.google.firebase.database.ChildEventListener() {
+//
+//            @Override
+//            public void onChildAdded(@NonNull DataSnapshot snapshot, String previousChildName) {
+//
+//                Message msg = snapshot.getValue(Message.class);
+//
+//                if (msg != null) {
+//
+//                    // Thêm tin nhắn mới vào list
+//                    messageList.add(msg);
+//
+//                    // Cập nhật RecyclerView
+//                    adapter.notifyItemInserted(messageList.size() - 1);
+//
+//                    // Cuộn xuống cuối
+//                    rvChat.scrollToPosition(messageList.size() - 1);
+//
+//                    // Nếu là tin nhắn từ đối phương
+//                    if (!msg.getSenderId().equals(myUid)) {
+//
+//                        if (getContext() != null) {
+//
+//                            android.content.SharedPreferences prefs =
+//                                    getContext().getSharedPreferences("AppPrefs", Context.MODE_PRIVATE);
+//
+//                            boolean isMsgEnabled =
+//                                    prefs.getBoolean("message_notification", true);
+//
+//                            if (isMsgEnabled) {
+//
+//                                showLocalChatNotification(
+//                                        "Người yêu ❤️",
+//                                        msg.getContent()
+//                                );
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//
+//            @Override
+//            public void onChildChanged(@NonNull DataSnapshot snapshot, String previousChildName) {}
+//
+//            @Override
+//            public void onChildRemoved(@NonNull DataSnapshot snapshot) {}
+//
+//            @Override
+//            public void onChildMoved(@NonNull DataSnapshot snapshot, String previousChildName) {}
+//
+//            @Override
+//            public void onCancelled(@NonNull DatabaseError error) {}
+//        });
+//    }
+
     private void listenForMessages() {
 
-        chatRef.child("chats").addChildEventListener(new com.google.firebase.database.ChildEventListener() {
+        chatRef.child("chats").addChildEventListener(new ChildEventListener() {
 
             @Override
             public void onChildAdded(@NonNull DataSnapshot snapshot, String previousChildName) {
@@ -170,33 +232,27 @@ public class ChatFragment extends Fragment {
 
                 if (msg != null) {
 
-                    // Thêm tin nhắn mới vào list
                     messageList.add(msg);
 
-                    // Cập nhật RecyclerView
                     adapter.notifyItemInserted(messageList.size() - 1);
 
-                    // Cuộn xuống cuối
                     rvChat.scrollToPosition(messageList.size() - 1);
 
-                    // Nếu là tin nhắn từ đối phương
-                    if (!msg.getSenderId().equals(myUid)) {
+                    // KHÔNG thông báo khi load lịch sử cũ
+                    if (!isFirstLoad && !msg.getSenderId().equals(myUid)) {
 
-                        if (getContext() != null) {
+                        SharedPreferences prefs =
+                                requireContext().getSharedPreferences("AppPrefs", Context.MODE_PRIVATE);
 
-                            android.content.SharedPreferences prefs =
-                                    getContext().getSharedPreferences("AppPrefs", Context.MODE_PRIVATE);
+                        boolean isMsgEnabled =
+                                prefs.getBoolean("message_notification", true);
 
-                            boolean isMsgEnabled =
-                                    prefs.getBoolean("message_notification", true);
+                        if (isMsgEnabled) {
 
-                            if (isMsgEnabled) {
-
-                                showLocalChatNotification(
-                                        "Người yêu ❤️",
-                                        msg.getContent()
-                                );
-                            }
+                            showLocalChatNotification(
+                                    "Người yêu ❤️",
+                                    msg.getContent()
+                            );
                         }
                     }
                 }
@@ -214,6 +270,11 @@ public class ChatFragment extends Fragment {
             @Override
             public void onCancelled(@NonNull DatabaseError error) {}
         });
+
+        // Sau 1 chút thì coi như load xong lịch sử
+        new android.os.Handler().postDelayed(() -> {
+            isFirstLoad = false;
+        }, 1000);
     }
 
     private void showLocalChatNotification(String title, String messageContent) {
