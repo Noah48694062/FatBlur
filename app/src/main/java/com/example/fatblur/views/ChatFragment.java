@@ -114,74 +114,107 @@ public class ChatFragment extends Fragment {
                     @Override public void onCancelled(@NonNull DatabaseError error) {}
                 });
     }
-
-
-
-//    private void listenForMessages() {
-//        chatRef.child("chats").addValueEventListener(new ValueEventListener() {
-//            @Override
-//            public void onDataChange(@NonNull DataSnapshot snapshot) {
-//                messageList.clear();
-//                for (DataSnapshot ds : snapshot.getChildren()) {
-//                    Message msg = ds.getValue(Message.class);
-//                    if (msg != null) messageList.add(msg);
-//                }
+//private void listenForMessages() {
+//    chatRef.child("chats").addValueEventListener(new ValueEventListener() {
+//        @Override
+//        public void onDataChange(@NonNull DataSnapshot snapshot) {
+//            Message lastIncomingMsg = null;
 //
-//                // Cập nhật dữ liệu cho Adapter thay vì tạo mới
-//                adapter.notifyDataSetChanged();
-//
-//                if (messageList.size() > 0) {
-//                    rvChat.scrollToPosition(messageList.size() - 1);
+//            messageList.clear();
+//            for (DataSnapshot ds : snapshot.getChildren()) {
+//                Message msg = ds.getValue(Message.class);
+//                if (msg != null) {
+//                    messageList.add(msg);
+//                    if (!msg.getSenderId().equals(myUid)) {
+//                        lastIncomingMsg = msg;
+//                    }
 //                }
 //            }
-//            @Override public void onCancelled(@NonNull DatabaseError error) {}
-//        });
-//    }
-private void listenForMessages() {
-    chatRef.child("chats").addValueEventListener(new ValueEventListener() {
-        @Override
-        public void onDataChange(@NonNull DataSnapshot snapshot) {
-            Message lastIncomingMsg = null;
+//
+//            adapter.notifyDataSetChanged();
+//
+//            if (messageList.size() > 0) {
+//                rvChat.scrollToPosition(messageList.size() - 1);
+//
+//                if (lastIncomingMsg != null) {
+//                    long timeDiff = System.currentTimeMillis() - lastIncomingMsg.getTimestamp();
+//
+//                    if (timeDiff < 3000) {
+//                        // --- BẮT ĐẦU ĐỌC CẤU HÌNH CONFIG CHAT ---
+//                        if (getContext() != null) {
+//                            android.content.SharedPreferences prefs =
+//                                    getContext().getSharedPreferences("AppPrefs", Context.MODE_PRIVATE);
+//                            boolean isMsgEnabled = prefs.getBoolean("message_notification", true);
+//
+//                            // Chỉ nổ thông báo khi người dùng đang bật Switch tin nhắn
+//                            if (isMsgEnabled) {
+//                                showLocalChatNotification("Người yêu: ❤️", lastIncomingMsg.getContent());
+//                            }
+//                        }
+//                        // --- KẾT THÚC KIỂM TRA ---
+//                    }
+//                }
+//            }
+//        }
+//        @Override public void onCancelled(@NonNull DatabaseError error) {}
+//    });
+//}
+    private void listenForMessages() {
 
-            messageList.clear();
-            for (DataSnapshot ds : snapshot.getChildren()) {
-                Message msg = ds.getValue(Message.class);
+        chatRef.child("chats").addChildEventListener(new com.google.firebase.database.ChildEventListener() {
+
+            @Override
+            public void onChildAdded(@NonNull DataSnapshot snapshot, String previousChildName) {
+
+                Message msg = snapshot.getValue(Message.class);
+
                 if (msg != null) {
+
+                    // Thêm tin nhắn mới vào list
                     messageList.add(msg);
+
+                    // Cập nhật RecyclerView
+                    adapter.notifyItemInserted(messageList.size() - 1);
+
+                    // Cuộn xuống cuối
+                    rvChat.scrollToPosition(messageList.size() - 1);
+
+                    // Nếu là tin nhắn từ đối phương
                     if (!msg.getSenderId().equals(myUid)) {
-                        lastIncomingMsg = msg;
-                    }
-                }
-            }
 
-            adapter.notifyDataSetChanged();
-
-            if (messageList.size() > 0) {
-                rvChat.scrollToPosition(messageList.size() - 1);
-
-                if (lastIncomingMsg != null) {
-                    long timeDiff = System.currentTimeMillis() - lastIncomingMsg.getTimestamp();
-
-                    if (timeDiff < 3000) {
-                        // --- BẮT ĐẦU ĐỌC CẤU HÌNH CONFIG CHAT ---
                         if (getContext() != null) {
+
                             android.content.SharedPreferences prefs =
                                     getContext().getSharedPreferences("AppPrefs", Context.MODE_PRIVATE);
-                            boolean isMsgEnabled = prefs.getBoolean("message_notification", true);
 
-                            // Chỉ nổ thông báo khi người dùng đang bật Switch tin nhắn
+                            boolean isMsgEnabled =
+                                    prefs.getBoolean("message_notification", true);
+
                             if (isMsgEnabled) {
-                                showLocalChatNotification("Người yêu: ❤️", lastIncomingMsg.getContent());
+
+                                showLocalChatNotification(
+                                        "Người yêu ❤️",
+                                        msg.getContent()
+                                );
                             }
                         }
-                        // --- KẾT THÚC KIỂM TRA ---
                     }
                 }
             }
-        }
-        @Override public void onCancelled(@NonNull DatabaseError error) {}
-    });
-}
+
+            @Override
+            public void onChildChanged(@NonNull DataSnapshot snapshot, String previousChildName) {}
+
+            @Override
+            public void onChildRemoved(@NonNull DataSnapshot snapshot) {}
+
+            @Override
+            public void onChildMoved(@NonNull DataSnapshot snapshot, String previousChildName) {}
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {}
+        });
+    }
 
     private void showLocalChatNotification(String title, String messageContent) {
         // Kiểm tra an toàn xem Fragment đã được gắn vào Activity chưa, tránh crash máy ảo
