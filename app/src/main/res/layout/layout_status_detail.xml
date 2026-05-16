@@ -47,10 +47,10 @@
                 android:layout_marginTop="12dp"/>
 
             <TextView
-                android:id="@+id/txtDistance"
+                android:id="@+id/txtPartnerSpeed"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Cách bạn: -- km"
+                android:text="Tốc độ di chuyển: -- km/h"
                 android:textColor="#FF5864"
                 android:textStyle="italic"
                 android:layout_marginTop="4dp"/>

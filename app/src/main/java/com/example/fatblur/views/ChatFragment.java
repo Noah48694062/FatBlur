@@ -1,5 +1,6 @@
 package com.example.fatblur.views;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -116,14 +117,44 @@ public class ChatFragment extends Fragment {
 
 
 
+//    private void listenForMessages() {
+//        chatRef.child("chats").addValueEventListener(new ValueEventListener() {
+//            @Override
+//            public void onDataChange(@NonNull DataSnapshot snapshot) {
+//                messageList.clear();
+//                for (DataSnapshot ds : snapshot.getChildren()) {
+//                    Message msg = ds.getValue(Message.class);
+//                    if (msg != null) messageList.add(msg);
+//                }
+//
+//                // Cập nhật dữ liệu cho Adapter thay vì tạo mới
+//                adapter.notifyDataSetChanged();
+//
+//                if (messageList.size() > 0) {
+//                    rvChat.scrollToPosition(messageList.size() - 1);
+//                }
+//            }
+//            @Override public void onCancelled(@NonNull DatabaseError error) {}
+//        });
+//    }
     private void listenForMessages() {
+        // Chỉ lắng nghe node "chats" để lấy tin nhắn, tránh lấy nhầm dữ liệu streakInfo
         chatRef.child("chats").addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
+                Message lastIncomingMsg = null; // Biến tạm để hứng tin nhắn mới nhất từ đối tác
+
                 messageList.clear();
                 for (DataSnapshot ds : snapshot.getChildren()) {
                     Message msg = ds.getValue(Message.class);
-                    if (msg != null) messageList.add(msg);
+                    if (msg != null) {
+                        messageList.add(msg);
+
+                        // Nếu tin nhắn KHÔNG phải của mình gửi, tạm thời giữ lại để kiểm tra
+                        if (!msg.getSenderId().equals(myUid)) {
+                            lastIncomingMsg = msg;
+                        }
+                    }
                 }
 
                 // Cập nhật dữ liệu cho Adapter thay vì tạo mới
@@ -131,10 +162,44 @@ public class ChatFragment extends Fragment {
 
                 if (messageList.size() > 0) {
                     rvChat.scrollToPosition(messageList.size() - 1);
+
+                    // --- BẮT ĐẦU LOGIC NỔ THÔNG BÁO CHO MÁY ẢO ---
+                    if (lastIncomingMsg != null) {
+                        long timeDiff = System.currentTimeMillis() - lastIncomingMsg.getTimestamp();
+
+                        // Nếu khoảng cách thời gian từ lúc gửi đến hiện tại nhỏ hơn 3 giây (3000ms)
+                        // Chứng tỏ đây là tin nhắn vừa mới tinh nhảy vào chứ không phải tin nhắn cũ trong lịch sử
+                        if (timeDiff < 3000) {
+                            showLocalChatNotification("Người yêu ❤️:", lastIncomingMsg.getContent());
+                        }
+                    }
+                    // --- KẾT THÚC LOGIC NỔ THÔNG BÁO ---
                 }
             }
             @Override public void onCancelled(@NonNull DatabaseError error) {}
         });
+    }
+
+    private void showLocalChatNotification(String title, String messageContent) {
+        // Kiểm tra an toàn xem Fragment đã được gắn vào Activity chưa, tránh crash máy ảo
+        if (!isAdded() || getContext() == null) return;
+
+        android.app.NotificationManager notificationManager =
+                (android.app.NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
+
+        // Sử dụng chung mã kênh "special_day_channel" ông đã khởi tạo thành công ở MainActivity
+        androidx.core.app.NotificationCompat.Builder builder =
+                new androidx.core.app.NotificationCompat.Builder(getContext(), "special_day_channel")
+                        .setSmallIcon(R.drawable.ic_launcher_foreground) // Icon nhỏ hiển thị trên thanh trạng thái
+                        .setContentTitle(title)
+                        .setContentText(messageContent)
+                        .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH) // Đảm bảo hiện pop-up trên đầu màn hình
+                        .setAutoCancel(true); // Nhấn vào tự động xóa thông báo
+
+        if (notificationManager != null) {
+            // Dùng thời gian hệ thống làm ID để các thông báo test không bị ghi đè lên nhau
+            notificationManager.notify((int) System.currentTimeMillis(), builder.build());
+        }
     }
 
 

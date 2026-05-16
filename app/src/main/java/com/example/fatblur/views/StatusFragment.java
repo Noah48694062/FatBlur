@@ -59,7 +59,8 @@ public class StatusFragment extends Fragment implements OnMapReadyCallback {
     private FusedLocationProviderClient fusedLocationClient;
     private LocationCallback locationCallback;
 
-    private TextView txtPartnerName, txtPartnerBattery, txtLastActive, txtDistance, txtMyPrivacyStatus;
+    // Sửa dòng khai báo TextView cũ
+    private TextView txtPartnerName, txtPartnerBattery, txtLastActive, txtPartnerSpeed, txtMyPrivacyStatus;
     private View viewOnlineStatus;
     private de.hdodenhof.circleimageview.CircleImageView imgPartnerAvatar;
     private Boolean lastPartnerSharingStatus = null;
@@ -80,7 +81,7 @@ public class StatusFragment extends Fragment implements OnMapReadyCallback {
         txtLastActive = v.findViewById(R.id.txtLastActive);
         viewOnlineStatus = v.findViewById(R.id.viewOnlineStatus);
         imgPartnerAvatar = v.findViewById(R.id.imgPartnerAvatar);
-        txtDistance = v.findViewById(R.id.txtDistance);
+        txtPartnerSpeed = v.findViewById(R.id.txtPartnerSpeed);
         txtMyPrivacyStatus = v.findViewById(R.id.txtMyPrivacyStatus);
         layoutPartnerPrivacyBanner = v.findViewById(R.id.layoutPartnerPrivacyBanner);
         View btnCloseBanner = v.findViewById(R.id.btnCloseBanner);
@@ -155,6 +156,10 @@ public class StatusFragment extends Fragment implements OnMapReadyCallback {
                 Long lastActive = snapshot.child("lastActiveAt").getValue(Long.class);
                 Boolean isSharing = snapshot.child("isSharingLocation").getValue(Boolean.class);
 
+                // 1. Đọc dữ liệu vận tốc (speed) từ Firebase (An toàn tránh crash bằng Long)
+                Long speedLong = snapshot.child("speed").getValue(Long.class);
+                int speed = (speedLong != null) ? speedLong.intValue() : 0;
+
                 if (isSharing == null) isSharing = true;
 
                 if (lastPartnerSharingStatus != null && lastPartnerSharingStatus != isSharing) {
@@ -168,7 +173,9 @@ public class StatusFragment extends Fragment implements OnMapReadyCallback {
                 if (!isSharing) {
                     if (partnerMarker != null) { partnerMarker.remove(); partnerMarker = null; }
                     if (!isBannerDismissedManually) layoutPartnerPrivacyBanner.setVisibility(View.VISIBLE);
-                    txtDistance.setText("Vị trí: Đã ẩn");
+
+                    // Nếu đối tác ẩn vị trí -> Ẩn luôn vận tốc
+                    txtPartnerSpeed.setText("Tốc độ: Đã ẩn");
                     txtLastActive.setText("Đối tác hiện đang ẩn danh");
                     txtLastActive.setTextColor(0xFFFF5864);
                     viewOnlineStatus.setBackgroundResource(R.drawable.bg_offline_dot);
@@ -178,19 +185,15 @@ public class StatusFragment extends Fragment implements OnMapReadyCallback {
                     txtLastActive.setTextColor(0xFF888888);
                     updateOnlineStatusUI(isOnline, lastActive);
 
+                    // 2. Hiển thị vận tốc di chuyển lên màn hình
+                    txtPartnerSpeed.setText(String.format("Tốc độ di chuyển: %d km/h", speed));
+
                     if (mMap != null && lat != null && lng != null) {
                         LatLng pos = new LatLng(lat, lng);
                         if (partnerMarker == null) {
                             partnerMarker = mMap.addMarker(new MarkerOptions().position(pos).title(txtPartnerName.getText().toString()));
                         } else {
                             partnerMarker.setPosition(pos);
-                        }
-
-                        if (myLat != 0 && myLng != 0) {
-                            float[] results = new float[1];
-                            Location.distanceBetween(myLat, myLng, lat, lng, results);
-                            float d = results[0];
-                            txtDistance.setText(d < 1000 ? String.format("Cách bạn: %.0f m", d) : String.format("Cách bạn: %.1f km", d / 1000));
                         }
 
                         if (isFirstPartnerLocation) {
