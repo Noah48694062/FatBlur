@@ -38,6 +38,7 @@ public class ChatFragment extends Fragment {
     private ChatAdapter adapter;
     private View layoutNotConnected, layoutChatActive;
     private boolean isFirstLoad = true;
+    private ChildEventListener messageListener;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -117,116 +118,16 @@ public class ChatFragment extends Fragment {
                     @Override public void onCancelled(@NonNull DatabaseError error) {}
                 });
     }
-//private void listenForMessages() {
-//    chatRef.child("chats").addValueEventListener(new ValueEventListener() {
-//        @Override
-//        public void onDataChange(@NonNull DataSnapshot snapshot) {
-//            Message lastIncomingMsg = null;
-//
-//            messageList.clear();
-//            for (DataSnapshot ds : snapshot.getChildren()) {
-//                Message msg = ds.getValue(Message.class);
-//                if (msg != null) {
-//                    messageList.add(msg);
-//                    if (!msg.getSenderId().equals(myUid)) {
-//                        lastIncomingMsg = msg;
-//                    }
-//                }
-//            }
-//
-//            adapter.notifyDataSetChanged();
-//
-//            if (messageList.size() > 0) {
-//                rvChat.scrollToPosition(messageList.size() - 1);
-//
-//                if (lastIncomingMsg != null) {
-//                    long timeDiff = System.currentTimeMillis() - lastIncomingMsg.getTimestamp();
-//
-//                    if (timeDiff < 3000) {
-//                        // --- BẮT ĐẦU ĐỌC CẤU HÌNH CONFIG CHAT ---
-//                        if (getContext() != null) {
-//                            android.content.SharedPreferences prefs =
-//                                    getContext().getSharedPreferences("AppPrefs", Context.MODE_PRIVATE);
-//                            boolean isMsgEnabled = prefs.getBoolean("message_notification", true);
-//
-//                            // Chỉ nổ thông báo khi người dùng đang bật Switch tin nhắn
-//                            if (isMsgEnabled) {
-//                                showLocalChatNotification("Người yêu: ❤️", lastIncomingMsg.getContent());
-//                            }
-//                        }
-//                        // --- KẾT THÚC KIỂM TRA ---
-//                    }
-//                }
-//            }
-//        }
-//        @Override public void onCancelled(@NonNull DatabaseError error) {}
-//    });
-//}
-
-
-//    private void listenForMessages() {
-//
-//        chatRef.child("chats").addChildEventListener(new com.google.firebase.database.ChildEventListener() {
-//
-//            @Override
-//            public void onChildAdded(@NonNull DataSnapshot snapshot, String previousChildName) {
-//
-//                Message msg = snapshot.getValue(Message.class);
-//
-//                if (msg != null) {
-//
-//                    // Thêm tin nhắn mới vào list
-//                    messageList.add(msg);
-//
-//                    // Cập nhật RecyclerView
-//                    adapter.notifyItemInserted(messageList.size() - 1);
-//
-//                    // Cuộn xuống cuối
-//                    rvChat.scrollToPosition(messageList.size() - 1);
-//
-//                    // Nếu là tin nhắn từ đối phương
-//                    if (!msg.getSenderId().equals(myUid)) {
-//
-//                        if (getContext() != null) {
-//
-//                            android.content.SharedPreferences prefs =
-//                                    getContext().getSharedPreferences("AppPrefs", Context.MODE_PRIVATE);
-//
-//                            boolean isMsgEnabled =
-//                                    prefs.getBoolean("message_notification", true);
-//
-//                            if (isMsgEnabled) {
-//
-//                                showLocalChatNotification(
-//                                        "Người yêu ❤️",
-//                                        msg.getContent()
-//                                );
-//                            }
-//                        }
-//                    }
-//                }
-//            }
-//
-//            @Override
-//            public void onChildChanged(@NonNull DataSnapshot snapshot, String previousChildName) {}
-//
-//            @Override
-//            public void onChildRemoved(@NonNull DataSnapshot snapshot) {}
-//
-//            @Override
-//            public void onChildMoved(@NonNull DataSnapshot snapshot, String previousChildName) {}
-//
-//            @Override
-//            public void onCancelled(@NonNull DatabaseError error) {}
-//        });
-//    }
 
     private void listenForMessages() {
 
-        chatRef.child("chats").addChildEventListener(new ChildEventListener() {
+        messageListener = new ChildEventListener() {
 
             @Override
             public void onChildAdded(@NonNull DataSnapshot snapshot, String previousChildName) {
+
+                // Nếu Fragment không còn tồn tại thì bỏ qua
+                if (!isAdded() || getView() == null) return;
 
                 Message msg = snapshot.getValue(Message.class);
 
@@ -238,21 +139,26 @@ public class ChatFragment extends Fragment {
 
                     rvChat.scrollToPosition(messageList.size() - 1);
 
-                    // KHÔNG thông báo khi load lịch sử cũ
+                    // Không hiện thông báo khi load lịch sử cũ
                     if (!isFirstLoad && !msg.getSenderId().equals(myUid)) {
 
-                        SharedPreferences prefs =
-                                requireContext().getSharedPreferences("AppPrefs", Context.MODE_PRIVATE);
+                        Context context = getContext();
 
-                        boolean isMsgEnabled =
-                                prefs.getBoolean("message_notification", true);
+                        if (context != null) {
 
-                        if (isMsgEnabled) {
+                            SharedPreferences prefs =
+                                    context.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE);
 
-                            showLocalChatNotification(
-                                    "Người yêu ❤️",
-                                    msg.getContent()
-                            );
+                            boolean isMsgEnabled =
+                                    prefs.getBoolean("message_notification", true);
+
+                            if (isMsgEnabled) {
+
+                                showLocalChatNotification(
+                                        "Người yêu ❤️",
+                                        msg.getContent()
+                                );
+                            }
                         }
                     }
                 }
@@ -269,9 +175,11 @@ public class ChatFragment extends Fragment {
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {}
-        });
+        };
 
-        // Sau 1 chút thì coi như load xong lịch sử
+        chatRef.child("chats").addChildEventListener(messageListener);
+
+        // Sau 1 giây coi như load xong lịch sử
         new android.os.Handler().postDelayed(() -> {
             isFirstLoad = false;
         }, 1000);
@@ -365,5 +273,13 @@ public class ChatFragment extends Fragment {
             public void onCancelled(@NonNull DatabaseError error) {
             }
         });
+    }
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+
+        if (chatRef != null && messageListener != null) {
+            chatRef.child("chats").removeEventListener(messageListener);
+        }
     }
 }
