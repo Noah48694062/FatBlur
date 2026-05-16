@@ -5,6 +5,7 @@ import android.app.NotificationManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Build;
 import androidx.core.app.NotificationCompat;
 import com.example.fatblur.R;
@@ -12,6 +13,13 @@ import com.example.fatblur.R;
 public class ReminderReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
+        SharedPreferences sharedPreferences = context.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE);
+        boolean isSpecialEnabled = sharedPreferences.getBoolean("special_day_notification", true);
+
+        // Nếu người dùng TẮT thông báo ngày đặc biệt, dừng toàn bộ hàm tại đây
+        if (!isSpecialEnabled) {
+            return;
+        }
         String title = intent.getStringExtra("title");
         String message = intent.getStringExtra("message");
 

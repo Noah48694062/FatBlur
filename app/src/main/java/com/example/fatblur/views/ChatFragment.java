@@ -137,48 +137,51 @@ public class ChatFragment extends Fragment {
 //            @Override public void onCancelled(@NonNull DatabaseError error) {}
 //        });
 //    }
-    private void listenForMessages() {
-        // Chỉ lắng nghe node "chats" để lấy tin nhắn, tránh lấy nhầm dữ liệu streakInfo
-        chatRef.child("chats").addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                Message lastIncomingMsg = null; // Biến tạm để hứng tin nhắn mới nhất từ đối tác
+private void listenForMessages() {
+    chatRef.child("chats").addValueEventListener(new ValueEventListener() {
+        @Override
+        public void onDataChange(@NonNull DataSnapshot snapshot) {
+            Message lastIncomingMsg = null;
 
-                messageList.clear();
-                for (DataSnapshot ds : snapshot.getChildren()) {
-                    Message msg = ds.getValue(Message.class);
-                    if (msg != null) {
-                        messageList.add(msg);
-
-                        // Nếu tin nhắn KHÔNG phải của mình gửi, tạm thời giữ lại để kiểm tra
-                        if (!msg.getSenderId().equals(myUid)) {
-                            lastIncomingMsg = msg;
-                        }
+            messageList.clear();
+            for (DataSnapshot ds : snapshot.getChildren()) {
+                Message msg = ds.getValue(Message.class);
+                if (msg != null) {
+                    messageList.add(msg);
+                    if (!msg.getSenderId().equals(myUid)) {
+                        lastIncomingMsg = msg;
                     }
-                }
-
-                // Cập nhật dữ liệu cho Adapter thay vì tạo mới
-                adapter.notifyDataSetChanged();
-
-                if (messageList.size() > 0) {
-                    rvChat.scrollToPosition(messageList.size() - 1);
-
-                    // --- BẮT ĐẦU LOGIC NỔ THÔNG BÁO CHO MÁY ẢO ---
-                    if (lastIncomingMsg != null) {
-                        long timeDiff = System.currentTimeMillis() - lastIncomingMsg.getTimestamp();
-
-                        // Nếu khoảng cách thời gian từ lúc gửi đến hiện tại nhỏ hơn 3 giây (3000ms)
-                        // Chứng tỏ đây là tin nhắn vừa mới tinh nhảy vào chứ không phải tin nhắn cũ trong lịch sử
-                        if (timeDiff < 3000) {
-                            showLocalChatNotification("Người yêu ❤️:", lastIncomingMsg.getContent());
-                        }
-                    }
-                    // --- KẾT THÚC LOGIC NỔ THÔNG BÁO ---
                 }
             }
-            @Override public void onCancelled(@NonNull DatabaseError error) {}
-        });
-    }
+
+            adapter.notifyDataSetChanged();
+
+            if (messageList.size() > 0) {
+                rvChat.scrollToPosition(messageList.size() - 1);
+
+                if (lastIncomingMsg != null) {
+                    long timeDiff = System.currentTimeMillis() - lastIncomingMsg.getTimestamp();
+
+                    if (timeDiff < 3000) {
+                        // --- BẮT ĐẦU ĐỌC CẤU HÌNH CONFIG CHAT ---
+                        if (getContext() != null) {
+                            android.content.SharedPreferences prefs =
+                                    getContext().getSharedPreferences("AppPrefs", Context.MODE_PRIVATE);
+                            boolean isMsgEnabled = prefs.getBoolean("message_notification", true);
+
+                            // Chỉ nổ thông báo khi người dùng đang bật Switch tin nhắn
+                            if (isMsgEnabled) {
+                                showLocalChatNotification("Người yêu: ❤️", lastIncomingMsg.getContent());
+                            }
+                        }
+                        // --- KẾT THÚC KIỂM TRA ---
+                    }
+                }
+            }
+        }
+        @Override public void onCancelled(@NonNull DatabaseError error) {}
+    });
+}
 
     private void showLocalChatNotification(String title, String messageContent) {
         // Kiểm tra an toàn xem Fragment đã được gắn vào Activity chưa, tránh crash máy ảo
